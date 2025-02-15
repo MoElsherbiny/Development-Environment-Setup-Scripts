@@ -113,6 +113,40 @@ $scoopApps = @(
     'microsoft-edge'
 )
 
+
+# Ensure VS Code is installed
+if (Get-Command code -ErrorAction SilentlyContinue) {
+    Write-Host "VS Code is installed. Configuring settings and extensions..." -ForegroundColor Cyan
+
+    # Set up VS Code settings
+    $vsCodeSettingsPath = Join-Path $env:APPDATA "Code\User\settings.json"
+    $sourceSettingsPath = Join-Path $PSScriptRoot "settings.json"
+
+    # Create the directory if it doesn't exist
+    New-Item -ItemType Directory -Force -Path (Split-Path $vsCodeSettingsPath) | Out-Null
+
+    # Copy settings.json
+    Copy-Item -Path $sourceSettingsPath -Destination $vsCodeSettingsPath -Force
+    Write-Host "VS Code settings configured successfully!" -ForegroundColor Green
+
+    # Install extensions from extensions.txt
+    $extensionsFile = Join-Path $PSScriptRoot "extensions.txt"
+    if (Test-Path $extensionsFile) {
+        Get-Content $extensionsFile | ForEach-Object {
+            $extension = $_
+            if (-not [string]::IsNullOrWhiteSpace($extension)) {
+                Write-Host "Installing VS Code extension: $extension" -ForegroundColor Yellow
+                code --install-extension $extension --force
+            }
+        }
+    }
+
+    Write-Host "VS Code extensions installed successfully!" -ForegroundColor Green
+} else {
+    Write-Host "VS Code is not installed. Skipping configuration." -ForegroundColor Red
+}
+
+
 foreach ($app in $scoopApps) {
     Write-Host "Installing/Updating $app..." -ForegroundColor Yellow
     scoop install $app

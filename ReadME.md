@@ -1,6 +1,6 @@
 # Development Environment Setup Scripts
 
-A comprehensive collection of scripts to automate the setup of development environments across Windows, macOS, and Linux systems. These scripts install and configure essential development tools, set up appropriate environment variables, and establish an auto-update system to keep your development environment current.
+A comprehensive collection of scripts to automate the setup of development environments across Windows, macOS, and Linux systems. These scripts install and configure essential development tools, set up environment variables, and establish an auto-update system to keep your development environment current.
 
 ## 🚀 Features
 
