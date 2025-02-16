@@ -1,4 +1,3 @@
-````markdown
 # Cross-Platform Development Environment Setup
 
 Automated setup scripts for configuring comprehensive development environments on Windows and Unix-based systems (macOS/Linux). Features smart installation, PATH validation, and automatic updates.
@@ -21,7 +20,6 @@ Invoke-WebRequest -Uri "YOUR_SCRIPT_URL/setup.ps1" -OutFile "setup.ps1"
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\setup.ps1
 ```
-````
 
 ### macOS/Linux
 
