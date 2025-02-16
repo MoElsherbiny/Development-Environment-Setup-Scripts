@@ -19,6 +19,57 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Add new helper functions
+test_tool_version() {
+    local tool=$1
+    local version
+    if version=$($tool --version 2>/dev/null); then
+        print_message "$GREEN" "$tool version: $version"
+        return 0
+    else
+        print_message "$YELLOW" "$tool not found or version check failed"
+        return 1
+    fi
+}
+
+verify_path_entry() {
+    local path_entry=$1
+    if [[ ":$PATH:" != *":$path_entry:"* ]]; then
+        print_message "$YELLOW" "WARNING: $path_entry is missing from PATH"
+        return 1
+    elif [ ! -d "$path_entry" ]; then
+        print_message "$RED" "ERROR: $path_entry in PATH does not exist"
+        return 1
+    fi
+    print_message "$GREEN" "Verified PATH entry: $path_entry"
+    return 0
+}
+
+verify_all_paths() {
+    print_message "$BLUE" "Verifying PATH entries..."
+    local missing_paths=()
+
+    # Add required paths similar to setup.ps1
+    local required_paths=(
+        "$HOME/.local/bin"
+        "$HOME/go/bin"
+        "$HOME/.cargo/bin"
+        "$HOME/.npm-global/bin"
+        "$HOME/.pyenv/bin"
+        "$HOME/.nvm/versions/node/$(nvm current)/bin"
+        "/usr/local/go/bin"
+        "/usr/local/bin"
+    )
+
+    for path in "${required_paths[@]}"; do
+        if ! verify_path_entry "$path"; then
+            missing_paths+=("$path")
+        fi
+    done
+
+    return ${#missing_paths[@]}
+}
+
 # Function to update all packages
 update_all_packages() {
     print_message "$BLUE" "Updating all development tools and packages..."
@@ -75,8 +126,17 @@ fi
 print_message "$BLUE" "Starting development environment setup..."
 
 # Create development directories
-DIRS=("Projects" "Workspace" "Development" "GitHub" ".ssh" ".config")
-for dir in "${DIRS[@]}"; do
+COMMON_DIRS=(
+    "Projects"
+    "Workspace"
+    "Development"
+    "GitHub"
+    ".ssh"
+    ".config"
+    ".docker"
+    "Downloads/Development"
+)
+for dir in "${COMMON_DIRS[@]}"; do
     mkdir -p "$HOME/$dir"
     print_message "$GREEN" "Created directory: $HOME/$dir"
 done
@@ -128,22 +188,33 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         sudo apt update
 
         # Install Linux packages
-        APT_PACKAGES=(
+        COMMON_PACKAGES=(
             git
             curl
             wget
-            build-essential
+            unzip
+            p7zip
+            nodejs
             python3
             python3-pip
-            nodejs
-            npm
-            tmux
-            vim
+            docker
+            docker-compose
+            golang
+            ruby
+            rustc
+            cargo
+            openjdk-17-jdk
+            maven
+            gradle
+            cmake
+            llvm
+            gcc
+            g++
+            make
             jq
-            tree
         )
 
-        for package in "${APT_PACKAGES[@]}"; do
+        for package in "${COMMON_PACKAGES[@]}"; do
             print_message "$YELLOW" "Installing $package..."
             sudo apt install -y $package
         done
@@ -154,23 +225,33 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         sudo dnf update -y
 
         # Install Linux packages
-        DNF_PACKAGES=(
+        COMMON_PACKAGES=(
             git
             curl
             wget
-            gcc
-            gcc-c++
+            unzip
+            p7zip
+            nodejs
             python3
             python3-pip
-            nodejs
-            npm
-            tmux
-            vim
+            docker
+            docker-compose
+            golang
+            ruby
+            rustc
+            cargo
+            openjdk-17-jdk
+            maven
+            gradle
+            cmake
+            llvm
+            gcc
+            g++
+            make
             jq
-            tree
         )
 
-        for package in "${DNF_PACKAGES[@]}"; do
+        for package in "${COMMON_PACKAGES[@]}"; do
             print_message "$YELLOW" "Installing $package..."
             sudo dnf install -y $package
         done
@@ -179,7 +260,7 @@ fi
 
 # Install Node.js global packages
 if command_exists npm; then
-    NODE_PACKAGES=(
+    COMMON_NODE_PACKAGES=(
         pnpm
         yarn
         typescript
@@ -194,9 +275,17 @@ if command_exists npm; then
         eslint
         prettier
         serve
+        vercel
+        netlify-cli
+        firebase-tools
+        webpack-cli
+        vite
+        turbo
+        jest
+        cypress
     )
 
-    for package in "${NODE_PACKAGES[@]}"; do
+    for package in "${COMMON_NODE_PACKAGES[@]}"; do
         print_message "$YELLOW" "Installing Node.js package: $package..."
         npm install -g $package
     done
@@ -204,24 +293,34 @@ fi
 
 # Install Python packages
 if command_exists pip3; then
-    PYTHON_PACKAGES=(
+    COMMON_PYTHON_PACKAGES=(
         virtualenv
         pipenv
         poetry
         black
         pylint
+        mypy
+        flake8
         pytest
+        pytest-cov
+        pytest-asyncio
         django
         flask
         fastapi
         uvicorn
         jupyter
-        requests
         pandas
         numpy
+        matplotlib
+        seaborn
+        requests
+        httpx
+        aiohttp
+        beautifulsoup4
+        rich
     )
 
-    for package in "${PYTHON_PACKAGES[@]}"; do
+    for package in "${COMMON_PYTHON_PACKAGES[@]}"; do
         print_message "$YELLOW" "Installing Python package: $package..."
         pip3 install --user $package
     done
@@ -292,6 +391,60 @@ update_all_packages
 EOF
 chmod +x "$HOME/.local/bin/update_dev_env.sh"
 
+setup_development_environment() {
+    # Configure Git
+    git config --global core.autocrlf input
+    git config --global init.defaultBranch main
+    git config --global pull.rebase false
+    git config --global core.fileMode true
+    git config --global core.symlinks true
+    git config --global core.longpaths true
+    git config --global credential.helper store
+
+    # Set up VS Code if available
+    if command_exists code; then
+        print_message "$BLUE" "Configuring VS Code..."
+        # Install extensions from file if exists
+        if [ -f "extensions.txt" ]; then
+            while IFS= read -r extension; do
+                code --install-extension "$extension" --force
+            done < "extensions.txt"
+        fi
+    fi
+
+    # Set environment variables
+    cat << 'EOF' >> "$HOME/.profile"
+export PYTHON_HOME=/usr/local/python3
+export NODE_PATH=$HOME/.npm-global
+export GOPATH=$HOME/go
+export CARGO_HOME=$HOME/.cargo
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+export MAVEN_HOME=/usr/share/maven
+export PATH=$PYTHON_HOME/bin:$NODE_PATH/bin:$GOPATH/bin:$CARGO_HOME/bin:$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
+EOF
+}
+
+validate_installation() {
+    print_message "$BLUE" "Performing final validation..."
+    local tools=(
+        "git"
+        "node"
+        "python3"
+        "docker"
+        "code"
+        "kubectl"
+    )
+
+    for tool in "${tools[@]}"; do
+        test_tool_version "$tool"
+    done
+
+    verify_all_paths
+
+    print_message "$GREEN" "Installation completed!"
+    print_message "$YELLOW" "Please restart your terminal for all changes to take effect."
+}
+
 print_message "$GREEN" "Setup complete! Development environment has been configured with:"
 cat << EOF
 1. Package Managers and Core Tools:
@@ -324,3 +477,5 @@ You can manually update anytime by running 'update_dev_env' in your terminal.
 EOF
 
 print_message "$YELLOW" "Please restart your terminal for all changes to take effect."
+
+validate_installation
