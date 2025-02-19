@@ -7,6 +7,9 @@ $SCRIPT_VERSION = "5.0.0"
 $SCRIPT_TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $SCRIPT_LOG_PATH = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
+# Mutex for synchronized log file access
+$logMutex = New-Object System.Threading.Mutex($false, "LogFileMutex")
+
 # Start transcript logging
 Start-Transcript -Path $SCRIPT_LOG_PATH -Append
 
@@ -18,7 +21,15 @@ function Write-ColorOutput {
         [switch]$NoNewLine
     )
     Write-Host $Message -ForegroundColor $Color -NoNewLine:$NoNewLine
-    Add-Content -Path $SCRIPT_LOG_PATH -Value $Message
+
+    # Use Mutex to synchronize access to the log file
+    $logMutex.WaitOne() | Out-Null
+    try {
+        Add-Content -Path $SCRIPT_LOG_PATH -Value $Message
+    }
+    finally {
+        $logMutex.ReleaseMutex()
+    }
 }
 
 # Function to test tool version
