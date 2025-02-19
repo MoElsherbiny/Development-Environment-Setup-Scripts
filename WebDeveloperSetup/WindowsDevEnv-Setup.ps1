@@ -418,8 +418,8 @@ $scoopApps = @(
     # Browsers - use winget for these if available
     @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome' }
     @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition' }
-    @{name = 'microsoft-edge'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge' }
-
+    @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev' }
+    @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser' }
     # Additional Tools
     @{name = 'mingw'; cmd = 'gcc'; args = '--version' }
     @{name = 'make'; cmd = 'make'; args = '--version' }
@@ -433,7 +433,102 @@ $scoopApps = @(
     @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }
 )
 
+# Define browser extensions
+$browserExtensions = @(
+    # Frontend Developer Extensions
+    @{name = "React Developer Tools"; id = "fmkadmapgofadopljbjfkapdkoienihi" }
+    @{name = "Redux DevTools"; id = "lmhkpmbekcpmknklioeibfkpmmfibljd" }
+    @{name = "Vue.js Devtools"; id = "nhdogjmejiglipccpnnnanhbledajbpd" }
+    @{name = "Angular DevTools"; id = "ienfalfjdbdpebioblfackkekamfmbnh" }
+    @{name = "Web Developer"; id = "bfbameneiokkgbdmiekhjnmfkcnldhhm" }
+    @{name = "ColorZilla"; id = "bhlhnicpbhignbdhedgjhgdocnmhomnp" }
+    @{name = "WhatFont"; id = "jabopobgcpjmedljpbcaablpmlmfcogm" }
+    @{name = "CSS Peeper"; id = "mbnbehikldjhnfehhnaidhjhoofhpehk" }
+    @{name = "Window Resizer"; id = "kkelicaakdanhinjdeammmilcgefonfh" }
+    @{name = "Responsive Viewer"; id = "inmopeiepgfljkpkidclfgbgbmfcennb" }
+    @{name = "VisBug"; id = "cdockenadnadldjbbgcallicgledbeoc" }
+    @{name = "Lighthouse"; id = "blipmdconlkpinefehnmjammfjpmpbjk" }
+    @{name = "WAVE Evaluation Tool"; id = "jbbplnpkjmmeebjpijfedlgcdilocofh" }
+    @{name = "uBlock Origin"; id = "cjpalhdlnbpafiamejdnhcphjbkeiagm" }
+    @{name = "SVG Export"; id = "naeaaedieihlkmdajjefioajbbdbdjgp" }
 
+    # Backend Developer Extensions
+    @{name = "Postman - API Testing"; id = "fhbjgbiflinjbdggehcddcbncdddomop" }
+    @{name = "GraphQL Developer Tools"; id = "jhfmdhchcagfkdbgmphnpmpgkghjaffi" }
+    @{name = "JSON Formatter"; id = "bcjindcccaagfpapjjmafapmmgkkhgoa" }
+    @{name = "JSONView"; id = "chklaanhfefbnpoihckbnefhakgolnmc" }
+    @{name = "Cookie Editor"; id = "fngmhnnpilhplaeedifhccceomclgfbg" }
+    @{name = "EditThisCookie"; id = "fngmhnnpilhplaeedifhccceomclgfbg" }
+    @{name = "Requestly - Modify HTTP Requests"; id = "hafjhmnicikbhmnaffoddblfbigkfkll" }
+    @{name = "RESTer - REST API Testing"; id = "faicmgpfiaijcedapokpbdejaodncfpl" }
+    @{name = "Security Headers"; id = "gfnanijofpichbemgojmjjnldhgoalkj" }
+    @{name = "Wappalyzer"; id = "gppongmhjkpfnbhagpmjfkannfbllamg" }
+    @{name = "Octotree - GitHub code tree"; id = "bkhaagjahfmjljalopjnoealnfndnagc" }
+    @{name = "GitHub File Icons"; id = "ddgjmnninnfhjbdcnkdgjakjhepkkihh" }
+    @{name = "OctoLinker"; id = "inojafojbhdpnehkhhfjalgjjobnhomj" }
+)
+
+# Modify the browser installation section
+if ($app.useWinget -and $script:installedTools['winget']) {
+    Write-ColorOutput "Checking $appName using winget..." 'Yellow'
+    if (winget list --id $app.wingetId --exact) {
+        Write-ColorOutput "Updating $appName via winget..." 'Yellow'
+        winget upgrade --id $app.wingetId --silent
+        $script:installedTools[$appName] = $true
+
+        # Install extensions after browser installation/update
+        if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
+            Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
+            foreach ($extension in $browserExtensions) {
+                $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
+                try {
+                    Start-Process $extensionUrl
+                    Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
+                    Start-Sleep -Seconds 2  # Small delay between extensions
+                }
+                catch {
+                    Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
+                }
+            }
+            Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
+            Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
+            Read-Host | Out-Null
+        }
+        continue
+    }
+    else {
+        Write-ColorOutput "Installing $appName via winget..." 'Yellow'
+        winget install --id $app.wingetId --silent --accept-package-agreements
+
+        if ($?) {
+            $script:installedTools[$appName] = $true
+            Write-ColorOutput "$appName installed successfully via winget" 'Green'
+
+            # Install extensions after fresh browser installation
+            if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
+                Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
+                foreach ($extension in $browserExtensions) {
+                    $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
+                    try {
+                        Start-Process $extensionUrl
+                        Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
+                        Start-Sleep -Seconds 2  # Small delay between extensions
+                    }
+                    catch {
+                        Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
+                    }
+                }
+                Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
+                Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
+                Read-Host | Out-Null
+            }
+            continue
+        }
+        else {
+            Write-ColorOutput "Winget installation failed, falling back to scoop" 'Yellow'
+        }
+    }
+}
 # Install scoop applications
 foreach ($app in $scoopApps) {
     $appName = $app.name

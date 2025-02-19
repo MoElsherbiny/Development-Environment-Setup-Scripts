@@ -346,7 +346,7 @@ function Restore-Environment {
 }
 
 # Function to check/install Chocolatey
-function Ensure-Chocolatey {
+function Test-AndInstallChocolatey {
   if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Write-ColorOutput "Installing Chocolatey package manager..." 'Yellow'
     Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -822,7 +822,7 @@ function Install-UnrealPythonDependencies {
 }
 
 # Function to configure Git for Unreal Engine development
-function Configure-Git {
+function Set-GitConfiguration {
   param (
     [hashtable]$Config
   )
@@ -850,7 +850,7 @@ function Configure-Git {
 }
 
 # Function to create development directories
-function Create-DevelopmentDirectories {
+function New-DevelopmentDirectories {
   param (
     [hashtable]$Config
   )
@@ -914,7 +914,7 @@ function Set-EnvironmentVariables {
 }
 
 # Function to create PowerShell profile with Unreal Engine specific aliases
-function Create-PowerShellProfile {
+function Set-PowerShellProfile {
   param (
     [hashtable]$Config
   )
@@ -1018,7 +1018,7 @@ function New-UEProject {
 }
 
 # Function to validate the installation
-function Validate-Installation {
+function Test-Installation {
   param (
     [hashtable]$Config
   )
