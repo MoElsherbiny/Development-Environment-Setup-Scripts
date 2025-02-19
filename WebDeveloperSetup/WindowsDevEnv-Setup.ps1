@@ -260,15 +260,12 @@ function Update-AllPackages {
 }
 
 # Check if running as Administrator
-$adminCheck = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-$adminRole = [System.Security.Principal.WindowsPrincipal]::new($adminCheck)
-if (-not $adminRole.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-ColorOutput "Error: Please run this script as Administrator!" 'Red'
     Write-ColorOutput "Right-click on PowerShell and select 'Run as Administrator', then run this script again." 'Yellow'
     Stop-Transcript
     exit 1
 }
-
 # Initialize tracking variables
 $script:installedTools = @{}
 $script:failed = @()
@@ -295,55 +292,29 @@ if (-not (Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet)) {
 }
 
 # Install Scoop (Windows package manager)
+# Check for internet connectivity
 try {
-    if (Test-ToolVersion 'scoop' -Silent) {
-        $script:installedTools['scoop'] = $true
-        Write-ColorOutput "Scoop is already installed, checking for updates..." 'Green'
-        scoop update
-    }
-    else {
-        Write-ColorOutput "Installing Scoop..." 'Yellow'
-        try {
-            Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-            Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-
-            # Set Scoop path
-            $env:SCOOP = Join-Path $env:USERPROFILE "scoop"
-            [System.Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
-            $script:installedTools['scoop'] = $true
+    $response = Invoke-WebRequest -Uri "https://www.google.com" -UseBasicParsing -ErrorAction Stop
+    if ($response.StatusCode -ne 200) {
+        Write-ColorOutput "WARNING: Internet connection appears to be down or unreliable!" 'Red'
+        $response = Read-Host "Do you want to continue anyway? (y/n)"
+        if ($response -ne 'y') {
+            Write-ColorOutput "Setup aborted due to connectivity issues." 'Red'
+            Stop-Transcript
+            exit 1
         }
-        catch {
-            Write-ColorOutput "Failed to install Scoop: $_" 'Red'
-            $script:failed += 'scoop'
-
-            # Try installing with PowerShell 5 method
-            Write-ColorOutput "Trying alternative installation method..." 'Yellow'
-            try {
-                iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
-                $script:installedTools['scoop'] = $true
-                Write-ColorOutput "Scoop installed successfully using alternative method" 'Green'
-            }
-            catch {
-                Write-ColorOutput "All Scoop installation methods failed" 'Red'
-                $script:failed += 'scoop-alternative'
-                Stop-Transcript
-                exit 1  # Scoop is critical, exit if it fails
-            }
-        }
-    }
-
-    # Add Scoop buckets
-    if ($script:installedTools['scoop']) {
-        Write-ColorOutput "Adding Scoop buckets..." 'Yellow'
-        @('extras', 'versions', 'nerd-fonts', 'java', 'main') | ForEach-Object {
-            scoop bucket add $_ 2>$null
-        }
+        Write-ColorOutput "Continuing despite connectivity issues. Some installations might fail." 'Yellow'
     }
 }
 catch {
-    Write-ColorOutput "Error setting up Scoop: $_" 'Red'
-    Stop-Transcript
-    exit 1  # Scoop is critical, exit if it fails
+    Write-ColorOutput "WARNING: Internet connection appears to be down or unreliable!" 'Red'
+    $response = Read-Host "Do you want to continue anyway? (y/n)"
+    if ($response -ne 'y') {
+        Write-ColorOutput "Setup aborted due to connectivity issues." 'Red'
+        Stop-Transcript
+        exit 1
+    }
+    Write-ColorOutput "Continuing despite connectivity issues. Some installations might fail." 'Yellow'
 }
 
 # Add Scoop to PATH
@@ -382,65 +353,66 @@ else {
 Write-ColorOutput "`nInstalling/Updating essential development tools..." 'Cyan'
 $scoopApps = @(
     # Development Tools
-    @{name = 'git'; cmd = 'git'; args = '--version' }
-    @{name = 'curl'; cmd = 'curl'; args = '--version' }
-    @{name = 'wget'; cmd = 'wget'; args = '--version' }
-    @{name = 'unzip'; cmd = 'unzip'; args = '-v' }
-    @{name = '7zip'; cmd = '7z'; args = '--help' }
-    @{name = 'nodejs-lts'; cmd = 'node'; args = '--version' }
-    @{name = 'python'; cmd = 'python'; args = '--version' }
-    @{name = 'vscode'; cmd = 'code'; args = '--version' }
-    @{name = 'docker'; cmd = 'docker'; args = '--version' }
-    @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version' }
-    @{name = 'postman'; cmd = 'postman'; args = '' }
-    @{name = 'windows-terminal'; cmd = 'wt'; args = '-v' }
-    @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version' }
-    @{name = 'firacode-nf'; cmd = ''; args = '' }
-    @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' }
-    @{name = 'powertoys'; cmd = ''; args = '' }
-    @{name = 'jq'; cmd = 'jq'; args = '--version' }
+    @{name = 'git'; cmd = 'git'; args = '--version'; useWinget = $false }
+    @{name = 'curl'; cmd = 'curl'; args = '--version'; useWinget = $false }
+    @{name = 'wget'; cmd = 'wget'; args = '--version'; useWinget = $false }
+    @{name = 'unzip'; cmd = 'unzip'; args = '-v'; useWinget = $false }
+    @{name = '7zip'; cmd = '7z'; args = '--help'; useWinget = $false }
+    @{name = 'nodejs-lts'; cmd = 'node'; args = '--version'; useWinget = $false }
+    @{name = 'python'; cmd = 'python'; args = '--version'; useWinget = $false }
+    @{name = 'vscode'; cmd = 'code'; args = '--version'; useWinget = $false }
+    @{name = 'docker'; cmd = 'docker'; args = '--version'; useWinget = $false }
+    @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version'; useWinget = $false }
+    @{name = 'postman'; cmd = 'postman'; args = ''; useWinget = $false }
+    @{name = 'windows-terminal'; cmd = 'wt'; args = '-v'; useWinget = $false }
+    @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version'; useWinget = $false }
+    @{name = 'firacode-nf'; cmd = ''; args = ''; useWinget = $false }
+    @{name = 'gsudo'; cmd = 'gsudo'; args = '--version'; useWinget = $false }
+    @{name = 'powertoys'; cmd = ''; args = ''; useWinget = $false }
+    @{name = 'jq'; cmd = 'jq'; args = '--version'; useWinget = $false }
 
     # Programming Languages
-    @{name = 'ruby'; cmd = 'ruby'; args = '--version' }
-    @{name = 'go'; cmd = 'go'; args = 'version' }
-    @{name = 'rust'; cmd = 'rustc'; args = '--version' }
-    @{name = 'gcc'; cmd = 'gcc'; args = '--version' }
-    @{name = 'openjdk17'; cmd = 'java'; args = '--version' }
-    @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' }
-    @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' }
+    @{name = 'ruby'; cmd = 'ruby'; args = '--version'; useWinget = $false }
+    @{name = 'go'; cmd = 'go'; args = 'version'; useWinget = $false }
+    @{name = 'rust'; cmd = 'rustc'; args = '--version'; useWinget = $false }
+    @{name = 'gcc'; cmd = 'gcc'; args = '--version'; useWinget = $false }
+    @{name = 'openjdk17'; cmd = 'java'; args = '--version'; useWinget = $false }
+    @{name = 'kotlin'; cmd = 'kotlin'; args = '-version'; useWinget = $false }
+    @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version'; useWinget = $false }
 
     # Cloud & Infrastructure
-    @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' }
-    @{name = 'terraform'; cmd = 'terraform'; args = 'version' }
-    @{name = 'aws'; cmd = 'aws'; args = '--version' }
-    @{name = 'azure-cli'; cmd = 'az'; args = 'version' }
-    @{name = 'github'; cmd = 'gh'; args = '--version' }
-    @{name = 'helm'; cmd = 'helm'; args = 'version' }
-    @{name = 'k9s'; cmd = 'k9s'; args = 'version' }
-    @{name = 'minikube'; cmd = 'minikube'; args = 'version' }
+    @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client'; useWinget = $false }
+    @{name = 'terraform'; cmd = 'terraform'; args = 'version'; useWinget = $false }
+    @{name = 'aws'; cmd = 'aws'; args = '--version'; useWinget = $false }
+    @{name = 'azure-cli'; cmd = 'az'; args = 'version'; useWinget = $false }
+    @{name = 'github'; cmd = 'gh'; args = '--version'; useWinget = $false }
+    @{name = 'helm'; cmd = 'helm'; args = 'version'; useWinget = $false }
+    @{name = 'k9s'; cmd = 'k9s'; args = 'version'; useWinget = $false }
+    @{name = 'minikube'; cmd = 'minikube'; args = 'version'; useWinget = $false }
 
     # Databases
-    @{name = 'mysql'; cmd = 'mysql'; args = '--version' }
-    @{name = 'postgresql'; cmd = 'psql'; args = '--version' }
-    @{name = 'mongodb'; cmd = 'mongo'; args = '--version' }
-    @{name = 'redis'; cmd = 'redis-server'; args = '--version' }
+    @{name = 'mysql'; cmd = 'mysql'; args = '--version'; useWinget = $false }
+    @{name = 'postgresql'; cmd = 'psql'; args = '--version'; useWinget = $false }
+    @{name = 'mongodb'; cmd = 'mongo'; args = '--version'; useWinget = $false }
+    @{name = 'redis'; cmd = 'redis-server'; args = '--version'; useWinget = $false }
 
-    # Browsers - use winget for these if available
+    # Browsers - use winget for these
     @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome' }
     @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition' }
     @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev' }
     @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser' }
+
     # Additional Tools
-    @{name = 'mingw'; cmd = 'gcc'; args = '--version' }
-    @{name = 'make'; cmd = 'make'; args = '--version' }
-    @{name = 'cmake'; cmd = 'cmake'; args = '--version' }
-    @{name = 'llvm'; cmd = 'clang'; args = '--version' }
-    @{name = 'ninja'; cmd = 'ninja'; args = '--version' }
-    @{name = 'gradle'; cmd = 'gradle'; args = '--version' }
-    @{name = 'maven'; cmd = 'mvn'; args = '--version' }
-    @{name = 'insomnia'; cmd = ''; args = '' }
-    @{name = 'wireshark'; cmd = ''; args = '' }
-    @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }
+    @{name = 'mingw'; cmd = 'gcc'; args = '--version'; useWinget = $false }
+    @{name = 'make'; cmd = 'make'; args = '--version'; useWinget = $false }
+    @{name = 'cmake'; cmd = 'cmake'; args = '--version'; useWinget = $false }
+    @{name = 'llvm'; cmd = 'clang'; args = '--version'; useWinget = $false }
+    @{name = 'ninja'; cmd = 'ninja'; args = '--version'; useWinget = $false }
+    @{name = 'gradle'; cmd = 'gradle'; args = '--version'; useWinget = $false }
+    @{name = 'maven'; cmd = 'mvn'; args = '--version'; useWinget = $false }
+    @{name = 'insomnia'; cmd = ''; args = ''; useWinget = $false }
+    @{name = 'wireshark'; cmd = ''; args = ''; useWinget = $false }
+    @{name = 'ngrok'; cmd = 'ngrok'; args = 'version'; useWinget = $false }
 )
 
 # Define browser extensions
@@ -478,96 +450,80 @@ $browserExtensions = @(
     @{name = "OctoLinker"; id = "inojafojbhdpnehkhhfjalgjjobnhomj" }
 )
 
-# Modify the browser installation section
-if ($app.useWinget -and $script:installedTools['winget']) {
-    Write-ColorOutput "Checking $appName using winget..." 'Yellow'
-    if (winget list --id $app.wingetId --exact) {
-        Write-ColorOutput "Updating $appName via winget..." 'Yellow'
-        winget upgrade --id $app.wingetId --silent
-        $script:installedTools[$appName] = $true
-
-        # Install extensions after browser installation/update
-        if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
-            Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
-            foreach ($extension in $browserExtensions) {
-                $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
-                try {
-                    Start-Process $extensionUrl
-                    Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
-                    Start-Sleep -Seconds 2  # Small delay between extensions
-                }
-                catch {
-                    Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
-                }
-            }
-            Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
-            Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
-            Read-Host | Out-Null
-        }
-        continue
-    }
-    else {
-        Write-ColorOutput "Installing $appName via winget..." 'Yellow'
-        winget install --id $app.wingetId --silent --accept-package-agreements
-
-        if ($?) {
-            $script:installedTools[$appName] = $true
-            Write-ColorOutput "$appName installed successfully via winget" 'Green'
-
-            # Install extensions after fresh browser installation
-            if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
-                Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
-                foreach ($extension in $browserExtensions) {
-                    $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
-                    try {
-                        Start-Process $extensionUrl
-                        Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
-                        Start-Sleep -Seconds 2  # Small delay between extensions
-                    }
-                    catch {
-                        Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
-                    }
-                }
-                Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
-                Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
-                Read-Host | Out-Null
-            }
-            continue
-        }
-        else {
-            Write-ColorOutput "Winget installation failed, falling back to scoop" 'Yellow'
-        }
-    }
-}
 # Install scoop applications
 foreach ($app in $scoopApps) {
     $appName = $app.name
     $appPath = Join-Path $env:USERPROFILE "scoop\apps\$appName\current"
 
+    # Skip empty entries
+    if (-not $appName) { continue }
+
     # For browsers and GUI apps, try to use winget if available
     if ($app.useWinget -and $script:installedTools['winget']) {
         Write-ColorOutput "Checking $appName using winget..." 'Yellow'
-        if (winget list --id $app.wingetId --exact) {
-            Write-ColorOutput "Updating $appName via winget..." 'Yellow'
-            winget upgrade --id $app.wingetId --silent
-            $script:installedTools[$appName] = $true
-            continue
-        }
-        else {
-            Write-ColorOutput "Installing $appName via winget..." 'Yellow'
-            winget install --id $app.wingetId --silent --accept-package-agreements
-
-            if ($?) {
+        try {
+            $wingetCheck = winget list --id $app.wingetId --exact 2>&1
+            if ($wingetCheck -match $app.wingetId) {
+                Write-ColorOutput "Updating $appName via winget..." 'Yellow'
+                winget upgrade --id $app.wingetId --silent
                 $script:installedTools[$appName] = $true
-                Write-ColorOutput "$appName installed successfully via winget" 'Green'
+
+                # Install extensions after browser installation/update
+                if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
+                    Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
+                    foreach ($extension in $browserExtensions) {
+                        $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
+                        try {
+                            Start-Process $extensionUrl
+                            Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
+                            Start-Sleep -Seconds 2  # Small delay between extensions
+                        }
+                        catch {
+                            Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
+                        }
+                    }
+                    Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
+                    Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
+                    Read-Host | Out-Null
+                }
                 continue
             }
             else {
-                Write-ColorOutput "Winget installation failed, falling back to scoop" 'Yellow'
+                Write-ColorOutput "Installing $appName via winget..." 'Yellow'
+                winget install --id $app.wingetId --silent --accept-package-agreements
+
+                if ($LASTEXITCODE -eq 0) {
+                    $script:installedTools[$appName] = $true
+                    Write-ColorOutput "$appName installed successfully via winget" 'Green'
+
+                    # Install extensions after fresh browser installation
+                    if ($appName -in @('googlechrome', 'microsoft-edge-dev')) {
+                        Write-ColorOutput "Installing browser extensions for $appName..." 'Yellow'
+                        foreach ($extension in $browserExtensions) {
+                            $extensionUrl = "https://chrome.google.com/webstore/detail/$($extension.id)"
+                            try {
+                                Start-Process $extensionUrl
+                                Write-ColorOutput "Launched installation for extension: $($extension.name)" 'Gray'
+                                Start-Sleep -Seconds 2  # Small delay between extensions
+                            }
+                            catch {
+                                Write-ColorOutput "Failed to launch extension installation: $($extension.name)" 'Red'
+                            }
+                        }
+                        Write-ColorOutput "Please complete the extension installations in the browser windows" 'Yellow'
+                        Write-ColorOutput "Press Enter once you have reviewed and installed the extensions..." 'Yellow'
+                        Read-Host | Out-Null
+                    }
+                    continue
+                }
             }
+        }
+        catch {
+            Write-ColorOutput "Winget operation failed for $appName, falling back to scoop" 'Yellow'
         }
     }
 
+    # Continue with regular scoop installation if winget is not available or failed
     # Skip command validation for font packages and GUI apps
     if (-not $app.cmd) {
         if (Confirm-Installation $appName $appPath) {
