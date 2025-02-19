@@ -6,21 +6,31 @@ $ErrorActionPreference = "Stop"
 $SCRIPT_VERSION = "4.0.0"
 $SCRIPT_TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $SCRIPT_LOG_PATH = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+$ADDITIONAL_LOG_PATH = Join-Path $env:TEMP "dev-setup-additional-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
 # Start transcript logging
 Start-Transcript -Path $SCRIPT_LOG_PATH -Append
 
-# Function to write colored output with logging
 function Write-ColorOutput {
     param(
+        [Parameter(Mandatory = $true)]
         [string]$Message,
         [string]$Color = 'White',
         [switch]$NoNewLine
     )
+
+    # Write to console with color
     Write-Host $Message -ForegroundColor $Color -NoNewLine:$NoNewLine
-    Add-Content -Path $SCRIPT_LOG_PATH -Value $Message
+
+    # Log to additional log file
+    Add-Content -Path $ADDITIONAL_LOG_PATH -Value $Message
 }
 
+# Script header
+Write-ColorOutput "=========================================================" 'Cyan'
+Write-ColorOutput "Windows Development Environment Setup v$SCRIPT_VERSION" 'Cyan'
+Write-ColorOutput "Started at: $SCRIPT_TIMESTAMP" 'Cyan'
+Write-ColorOutput "=========================================================" 'Cyan'
 # Function to test tool version
 function Test-ToolVersion {
     param (
