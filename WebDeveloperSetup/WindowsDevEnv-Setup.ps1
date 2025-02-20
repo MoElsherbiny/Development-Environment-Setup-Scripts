@@ -5,15 +5,26 @@ $ErrorActionPreference = "Stop"
 # Script metadata
 $SCRIPT_VERSION = "5.0.0"
 $SCRIPT_TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-$SCRIPT_LOG_PATH = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+$SCRIPT_LOG_PATH_BASE = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
-# Mutex for synchronized log file access
-$logMutex = New-Object System.Threading.Mutex($false, "LogFileMutex")
+# Function to ensure unique log file name
+function Get-UniqueLogPath {
+    param ([string]$BasePath)
+    $counter = 0
+    $logPath = $BasePath
+    while ((Test-Path $logPath) -and (Get-Item $logPath -ErrorAction SilentlyContinue | Get-Process -ErrorAction SilentlyContinue)) {
+        $counter++
+        $logPath = $BasePath -replace '\.log$', "_$counter.log"
+    }
+    return $logPath
+}
+
+$SCRIPT_LOG_PATH = Get-UniqueLogPath $SCRIPT_LOG_PATH_BASE
 
 # Start transcript logging
-Start-Transcript -Path $SCRIPT_LOG_PATH -Append
+Start-Transcript -Path $SCRIPT_LOG_PATH -Append -Force
 
-# Function to write colored output with logging
+# Function to write colored output (no manual log writing, relies on transcript)
 function Write-ColorOutput {
     param(
         [string]$Message,
@@ -21,15 +32,7 @@ function Write-ColorOutput {
         [switch]$NoNewLine
     )
     Write-Host $Message -ForegroundColor $Color -NoNewLine:$NoNewLine
-
-    # Use Mutex to synchronize access to the log file
-    $logMutex.WaitOne() | Out-Null
-    try {
-        Add-Content -Path $SCRIPT_LOG_PATH -Value $Message
-    }
-    finally {
-        $logMutex.ReleaseMutex()
-    }
+    # Transcript captures this automatically, no need for Add-Content
 }
 
 # Function to test tool version
@@ -45,7 +48,6 @@ function Test-ToolVersion {
         if (-not $Silent) {
             Write-ColorOutput "$Command version: $version" 'Gray'
         }
-
         if ($MinVersion -and $version -match '(\d+\.\d+\.\d+)') {
             $versionNum = [version]$Matches[1]
             $minVersionNum = [version]$MinVersion
@@ -67,23 +69,18 @@ function Test-PathEntry {
         [string]$PathEntry,
         [ValidateSet('User', 'Machine')]$Scope
     )
-
     $currentPath = [System.Environment]::GetEnvironmentVariable('Path', $Scope)
     $pathsArray = $currentPath -split ';' | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
     $PathEntry = $PathEntry.TrimEnd('\')
-
     $exists = $pathsArray -contains $PathEntry
     if (-not $exists) {
         Write-ColorOutput "WARNING: $PathEntry is missing from $Scope PATH" 'Yellow'
         return $false
     }
-
-    # Verify the path actually exists
     if (-not (Test-Path $PathEntry)) {
         Write-ColorOutput "ERROR: $PathEntry in $Scope PATH does not exist on disk" 'Red'
         return $false
     }
-
     Write-ColorOutput "Verified $PathEntry in $Scope PATH" 'Green'
     return $true
 }
@@ -91,7 +88,6 @@ function Test-PathEntry {
 # Function to verify all required paths
 function Test-AllPaths {
     Write-ColorOutput "Verifying PATH entries..." 'Cyan'
-
     $requiredPaths = @{
         'Machine' = @(
             (Join-Path $env:USERPROFILE "scoop\apps\git\current\cmd")
@@ -109,12 +105,10 @@ function Test-AllPaths {
             (Join-Path $env:USERPROFILE "go\bin")
         )
     }
-
     $missingPaths = @{
         'Machine' = @()
         'User'    = @()
     }
-
     foreach ($scope in $requiredPaths.Keys) {
         foreach ($path in $requiredPaths[$scope]) {
             if (-not (Test-PathEntry -PathEntry $path -Scope $scope)) {
@@ -122,7 +116,6 @@ function Test-AllPaths {
             }
         }
     }
-
     return $missingPaths
 }
 
@@ -134,20 +127,16 @@ function Confirm-Installation {
         [string]$CommandName = $Tool,
         [string]$VersionArg = '--version'
     )
-    # First check if we can execute the command
     if (Get-Command $CommandName -ErrorAction SilentlyContinue) {
         if (Test-ToolVersion -Command $CommandName -VersionArg $VersionArg -Silent) {
             Write-ColorOutput "$Tool is already installed and working" 'Green'
             return $true
         }
     }
-
-    # If command check fails, check the install path
     if (Test-Path $InstallPath) {
         Write-ColorOutput "$Tool is installed at: $InstallPath but may not be in PATH" 'Yellow'
         return $true
     }
-
     Write-ColorOutput "$Tool is not installed" 'Yellow'
     return $false
 }
@@ -158,22 +147,17 @@ function Add-ToPath {
         [string]$PathToAdd,
         [ValidateSet('User', 'Machine')]$Scope
     )
-
-    # Normalize path by removing trailing backslash
     $PathToAdd = $PathToAdd.TrimEnd('\')
-
     $currentPath = [System.Environment]::GetEnvironmentVariable('Path', $Scope)
     $pathsArray = $currentPath -split ';' | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
-
     if ($pathsArray -notcontains $PathToAdd) {
         $newPath = ($pathsArray + $PathToAdd) -join ';'
         [System.Environment]::SetEnvironmentVariable('Path', $newPath, $Scope)
         $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-        [System.Environment]::GetEnvironmentVariable('Path', 'User')
+                    [System.Environment]::GetEnvironmentVariable('Path', 'User')
         Write-ColorOutput "Added to $Scope PATH: $PathToAdd" 'Green'
         return $true
     }
-
     Write-ColorOutput "$PathToAdd already in $Scope PATH" 'Gray'
     return $false
 }
@@ -182,12 +166,9 @@ function Add-ToPath {
 function Update-AllPackages {
     [CmdletBinding()]
     param()
-
     Write-ColorOutput "Updating all packages..." 'Cyan'
     $updateErrors = @()
-
     try {
-        # Update Scoop and all apps
         Write-ColorOutput "Updating Scoop and its packages..." 'Yellow'
         try {
             scoop update
@@ -196,8 +177,6 @@ function Update-AllPackages {
         catch {
             $updateErrors += "Scoop update failed: $_"
         }
-
-        # Update npm and global packages
         if (Test-ToolVersion 'npm' -Silent) {
             Write-ColorOutput "Updating npm and global packages..." 'Yellow'
             try {
@@ -208,8 +187,6 @@ function Update-AllPackages {
                 $updateErrors += "npm update failed: $_"
             }
         }
-
-        # Update pnpm
         if (Test-ToolVersion 'pnpm' -Silent) {
             Write-ColorOutput "Updating pnpm..." 'Yellow'
             try {
@@ -219,8 +196,6 @@ function Update-AllPackages {
                 $updateErrors += "pnpm update failed: $_"
             }
         }
-
-        # Update Python and pip packages
         if (Test-ToolVersion 'python' -Silent) {
             Write-ColorOutput "Updating pip and global packages..." 'Yellow'
             try {
@@ -233,8 +208,6 @@ function Update-AllPackages {
                 $updateErrors += "Python/pip update failed: $_"
             }
         }
-
-        # Update winget packages if available
         if (Test-ToolVersion 'winget' -VersionArg '--version' -Silent) {
             Write-ColorOutput "Updating winget packages..." 'Yellow'
             try {
@@ -244,7 +217,6 @@ function Update-AllPackages {
                 $updateErrors += "Winget upgrade failed: $_"
             }
         }
-
         if ($updateErrors.Count -eq 0) {
             Write-ColorOutput "All packages have been updated!" 'Green'
         }
@@ -292,54 +264,59 @@ try {
         Write-ColorOutput "Continuing despite connectivity issues. Some installations might fail." 'Yellow'
     }
 
+    # Initialize installed tools tracking
+    $script:installedTools = @{}
+    $script:failed = @()
+    $script:skipped = @()
+
     # Install Scoop (Windows package manager)
     try {
-        if (Test-ToolVersion 'scoop' -Silent) {
+        Write-ColorOutput "Checking for Scoop..." 'Cyan'
+        $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop.cmd"
+        if (Test-Path $scoopPath -and (Test-ToolVersion 'scoop' -Silent)) {
             $script:installedTools['scoop'] = $true
-            Write-ColorOutput "Scoop is already installed, checking for updates..." 'Green'
+            Write-ColorOutput "Scoop is already installed, updating..." 'Green'
             scoop update
+            if ($LASTEXITCODE -ne 0) {
+                Write-ColorOutput "Scoop update failed" 'Yellow'
+            }
+            else {
+                Write-ColorOutput "Scoop updated successfully" 'Green'
+            }
         }
         else {
             Write-ColorOutput "Installing Scoop..." 'Yellow'
-            try {
-                Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-                Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-
-                # Set Scoop path
+            Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+            Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+            if ($LASTEXITCODE -eq 0) {
                 $env:SCOOP = Join-Path $env:USERPROFILE "scoop"
                 [System.Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
                 $script:installedTools['scoop'] = $true
+                Write-ColorOutput "Scoop installed successfully" 'Green'
             }
-            catch {
-                Write-ColorOutput "Failed to install Scoop: $_" 'Red'
-                $script:failed += 'scoop'
-
-                # Try installing with PowerShell 5 method
-                Write-ColorOutput "Trying alternative installation method..." 'Yellow'
-                try {
-                    iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
-                    $script:installedTools['scoop'] = $true
-                    Write-ColorOutput "Scoop installed successfully using alternative method" 'Green'
-                }
-                catch {
-                    Write-ColorOutput "All Scoop installation methods failed" 'Red'
-                    $script:failed += 'scoop-alternative'
-                    Stop-Transcript
-                    exit 1  # Scoop is critical, exit if it fails
-                }
+            else {
+                throw "Scoop installation failed with exit code $LASTEXITCODE"
             }
         }
 
         # Add Scoop buckets
         if ($script:installedTools['scoop']) {
             Write-ColorOutput "Adding Scoop buckets..." 'Yellow'
-            @('extras', 'versions', 'nerd-fonts', 'java', 'main') | ForEach-Object {
-                scoop bucket add $_ 2>$null
+            $buckets = @('main', 'extras', 'versions', 'nerd-fonts', 'java')
+            foreach ($bucket in $buckets) {
+                scoop bucket add $bucket 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-ColorOutput "Added bucket: $bucket" 'Green'
+                }
+                else {
+                    Write-ColorOutput "Failed to add bucket $bucket (might already exist)" 'Yellow'
+                }
             }
         }
     }
     catch {
         Write-ColorOutput "Error setting up Scoop: $_" 'Red'
+        $script:failed += 'scoop'
         Stop-Transcript
         exit 1  # Scoop is critical, exit if it fails
     }
@@ -351,7 +328,6 @@ try {
     # Install essential tools with Scoop
     Write-ColorOutput "`nInstalling/Updating essential development tools..." 'Cyan'
     $scoopApps = @(
-        # Development Tools
         @{name = 'git'; cmd = 'git'; args = '--version' }
         @{name = 'curl'; cmd = 'curl'; args = '--version' }
         @{name = 'wget'; cmd = 'wget'; args = '--version' }
@@ -369,8 +345,6 @@ try {
         @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' }
         @{name = 'powertoys'; cmd = ''; args = '' }
         @{name = 'jq'; cmd = 'jq'; args = '--version' }
-
-        # Programming Languages
         @{name = 'ruby'; cmd = 'ruby'; args = '--version' }
         @{name = 'go'; cmd = 'go'; args = 'version' }
         @{name = 'rust'; cmd = 'rustc'; args = '--version' }
@@ -378,8 +352,6 @@ try {
         @{name = 'openjdk17'; cmd = 'java'; args = '--version' }
         @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' }
         @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' }
-
-        # Cloud & Infrastructure
         @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' }
         @{name = 'terraform'; cmd = 'terraform'; args = 'version' }
         @{name = 'aws'; cmd = 'aws'; args = '--version' }
@@ -388,19 +360,14 @@ try {
         @{name = 'helm'; cmd = 'helm'; args = 'version' }
         @{name = 'k9s'; cmd = 'k9s'; args = 'version' }
         @{name = 'minikube'; cmd = 'minikube'; args = 'version' }
-
-        # Databases
         @{name = 'mysql'; cmd = 'mysql'; args = '--version' }
         @{name = 'postgresql'; cmd = 'psql'; args = '--version' }
         @{name = 'mongodb'; cmd = 'mongo'; args = '--version' }
         @{name = 'redis'; cmd = 'redis-server'; args = '--version' }
-
-        # Browsers - use winget for these if available
         @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome' }
         @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition' }
         @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev' }
         @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser' }
-        # Additional Tools
         @{name = 'mingw'; cmd = 'gcc'; args = '--version' }
         @{name = 'make'; cmd = 'make'; args = '--version' }
         @{name = 'cmake'; cmd = 'cmake'; args = '--version' }
@@ -413,36 +380,31 @@ try {
         @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }
     )
 
-    # Install scoop applications
     foreach ($app in $scoopApps) {
         $appName = $app.name
         $appPath = Join-Path $env:USERPROFILE "scoop\apps\$appName\current"
-
-        # For browsers and GUI apps, try to use winget if available
-        if ($app.useWinget -and $script:installedTools['winget']) {
+        if ($app.useWinget -and (Test-ToolVersion 'winget' -VersionArg '--version' -Silent)) {
             Write-ColorOutput "Checking $appName using winget..." 'Yellow'
-            if (winget list --id $app.wingetId --exact) {
-                Write-ColorOutput "Updating $appName via winget..." 'Yellow'
-                winget upgrade --id $app.wingetId --silent
-                $script:installedTools[$appName] = $true
-                continue
-            }
-            else {
-                Write-ColorOutput "Installing $appName via winget..." 'Yellow'
-                winget install --id $app.wingetId --silent --accept-package-agreements
-
-                if ($?) {
+            try {
+                winget list --id $app.wingetId --exact | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-ColorOutput "Updating $appName via winget..." 'Yellow'
+                    winget upgrade --id $app.wingetId --silent
                     $script:installedTools[$appName] = $true
-                    Write-ColorOutput "$appName installed successfully via winget" 'Green'
                     continue
                 }
-                else {
-                    Write-ColorOutput "Winget installation failed, falling back to scoop" 'Yellow'
-                }
+            }
+            catch {
+                Write-ColorOutput "Falling back to scoop for $appName" 'Yellow'
+            }
+            Write-ColorOutput "Installing $appName via winget..." 'Yellow'
+            winget install --id $app.wingetId --silent --accept-package-agreements
+            if ($?) {
+                $script:installedTools[$appName] = $true
+                Write-ColorOutput "$appName installed successfully via winget" 'Green'
+                continue
             }
         }
-
-        # Skip command validation for font packages and GUI apps
         if (-not $app.cmd) {
             if (Confirm-Installation $appName $appPath) {
                 Write-ColorOutput "Updating $appName..." 'Yellow'
@@ -462,8 +424,6 @@ try {
             }
             continue
         }
-
-        # For command-line tools, check if they exist in PATH
         if (Confirm-Installation $appName $appPath $app.cmd $app.args) {
             Write-ColorOutput "Updating $appName..." 'Yellow'
             try {
@@ -478,8 +438,6 @@ try {
             Write-ColorOutput "Installing $appName..." 'Yellow'
             try {
                 scoop install $appName
-
-                # Verify installation success
                 if (Test-Path $appPath) {
                     $script:installedTools[$appName] = $true
                     Write-ColorOutput "$appName installed successfully" 'Green'
@@ -499,17 +457,11 @@ try {
     # Ensure VS Code is installed and configured
     if (Get-Command code -ErrorAction SilentlyContinue) {
         Write-ColorOutput "`nConfiguring VS Code settings and extensions..." 'Cyan'
-
-        # Set up VS Code settings
         $vsCodeSettingsPath = Join-Path $env:APPDATA "Code\User\settings.json"
         $vsCodeSettingsDir = Split-Path $vsCodeSettingsPath
-
-        # Create the VS Code user directory if it doesn't exist
         if (-not (Test-Path $vsCodeSettingsDir)) {
             New-Item -ItemType Directory -Force -Path $vsCodeSettingsDir | Out-Null
         }
-
-        # Create default settings if no source settings available
         $defaultSettings = @{
             "editor.fontFamily"                          = "'FiraCode NF', Consolas, 'Courier New', monospace"
             "editor.fontLigatures"                       = $true
@@ -532,10 +484,7 @@ try {
             "editor.suggestSelection"                    = "first"
             "debug.toolBarLocation"                      = "docked"
         }
-
-        # Check if settings file exists
         if (Test-Path $vsCodeSettingsPath) {
-            # Merge existing settings with defaults
             try {
                 $existingSettings = Get-Content $vsCodeSettingsPath | ConvertFrom-Json -AsHashtable
                 foreach ($key in $defaultSettings.Keys) {
@@ -548,53 +497,25 @@ try {
             }
             catch {
                 Write-ColorOutput "Error updating VS Code settings: $_" 'Red'
-                # Create new settings file if existing one can't be parsed
                 $defaultSettings | ConvertTo-Json -Depth 10 | Set-Content $vsCodeSettingsPath
             }
         }
         else {
-            # Create new settings file
             $defaultSettings | ConvertTo-Json -Depth 10 | Set-Content $vsCodeSettingsPath
             Write-ColorOutput "Created VS Code settings file with default settings" 'Green'
         }
-
-        # Install essential VS Code extensions
         $essentialExtensions = @(
-            "ms-vscode.powershell"
-            "ms-dotnettools.csharp"
-            "ms-python.python"
-            "ms-python.vscode-pylance"
-            "ms-azuretools.vscode-docker"
-            "dbaeumer.vscode-eslint"
-            "esbenp.prettier-vscode"
-            "golang.go"
-            "redhat.java"
-            "vscjava.vscode-java-debug"
-            "rust-lang.rust-analyzer"
-            "ms-vscode-remote.remote-wsl"
-            "ms-vscode-remote.remote-containers"
-            "github.copilot"
-            "github.vscode-pull-request-github"
+            "ms-vscode.powershell", "ms-dotnettools.csharp", "ms-python.python",
+            "ms-python.vscode-pylance", "ms-azuretools.vscode-docker", "dbaeumer.vscode-eslint",
+            "esbenp.prettier-vscode", "golang.go", "redhat.java", "vscjava.vscode-java-debug",
+            "rust-lang.rust-analyzer", "ms-vscode-remote.remote-wsl", "ms-vscode-remote.remote-containers",
+            "github.copilot", "github.vscode-pull-request-github"
         )
-
         Write-ColorOutput "Installing essential VS Code extensions..." 'Yellow'
         foreach ($extension in $essentialExtensions) {
             Write-ColorOutput "Installing extension: $extension" 'Gray'
             code --install-extension $extension --force
         }
-
-        # Look for extensions.txt file in script directory
-        $extensionsFile = Join-Path $PSScriptRoot "extensions.txt"
-        if (Test-Path $extensionsFile) {
-            Write-ColorOutput "Found extensions.txt, installing additional extensions..." 'Yellow'
-            Get-Content $extensionsFile | Where-Object { $_.Trim() -ne "" -and -not $_.StartsWith('#') } | ForEach-Object {
-                $extension = $_.Trim()
-                Write-ColorOutput "Installing extension from file: $extension" 'Gray'
-                code --install-extension $extension --force
-            }
-        }
-
-        Write-ColorOutput "VS Code configuration completed!" 'Green'
     }
     else {
         Write-ColorOutput "VS Code not found in PATH. Skipping configuration." 'Yellow'
@@ -616,7 +537,6 @@ try {
         @{Path = (Join-Path $env:USERPROFILE ".cargo\bin"); Scope = 'User'; Tool = 'cargo-bin' }
         @{Path = (Join-Path $env:USERPROFILE "go\bin"); Scope = 'User'; Tool = 'go-bin' }
     )
-
     foreach ($pathInfo in $paths) {
         if (Test-Path $pathInfo.Path) {
             if (Add-ToPath -PathToAdd $pathInfo.Path -Scope $pathInfo.Scope) {
@@ -629,103 +549,38 @@ try {
         }
     }
 
-    # Install Node.js global packages if Node.js is available
-    if ($script:installedTools['nodejs-lts'] -or (Get-Command node -ErrorAction SilentlyContinue)) {
+    # Install Node.js global packages
+    if (Test-ToolVersion 'node' -Silent) {
         Write-ColorOutput "`nInstalling/Updating Node.js global packages..." 'Cyan'
         $nodePackages = @(
-            # Package Managers
-            @{name = 'pnpm'; cmd = 'pnpm'; args = '--version' }
-            @{name = 'yarn'; cmd = 'yarn'; args = '--version' }
-
-            # Development Tools
-            @{name = 'typescript'; cmd = 'tsc'; args = '--version' }
-            @{name = 'ts-node'; cmd = 'ts-node'; args = '--version' }
-            @{name = 'nodemon'; cmd = 'nodemon'; args = '--version' }
-            @{name = 'npm-check-updates'; cmd = 'ncu'; args = '--version' }
-
-            # Frameworks and CLIs
-            @{name = '@angular/cli'; cmd = 'ng'; args = 'version' }
-            @{name = 'create-react-app'; cmd = 'create-react-app'; args = '--version' }
-            @{name = '@vue/cli'; cmd = 'vue'; args = '--version' }
-            @{name = 'next'; cmd = 'next'; args = '--version' }
-            @{name = 'nx'; cmd = 'nx'; args = 'version' }
-
-            # Code Quality
-            @{name = 'eslint'; cmd = 'eslint'; args = '--version' }
-            @{name = 'prettier'; cmd = 'prettier'; args = '--version' }
-
-            # Utilities
-            @{name = 'serve'; cmd = 'serve'; args = '--version' }
-            @{name = 'vercel'; cmd = 'vercel'; args = '--version' }
-            @{name = 'netlify-cli'; cmd = 'netlify'; args = '--version' }
-            @{name = 'firebase-tools'; cmd = 'firebase'; args = '--version' }
-
-            # Build Tools
-            @{name = 'webpack-cli'; cmd = 'webpack-cli'; args = '--version' }
-            @{name = 'vite'; cmd = 'vite'; args = '--version' }
-            @{name = 'turbo'; cmd = 'turbo'; args = '--version' }
-
-            # Testing
-            @{name = 'jest'; cmd = 'jest'; args = '--version' }
-            @{name = 'cypress'; cmd = 'cypress'; args = '--version' }
+            'pnpm', 'yarn', 'typescript', 'ts-node', 'nodemon', 'npm-check-updates',
+            '@angular/cli', 'create-react-app', '@vue/cli', 'next', 'nx',
+            'eslint', 'prettier', 'serve', 'vercel', 'netlify-cli', 'firebase-tools',
+            'webpack-cli', 'vite', 'turbo', 'jest', 'cypress'
         )
-
         foreach ($package in $nodePackages) {
-            if (Test-ToolVersion $package.cmd -Silent) {
-                Write-ColorOutput "Updating $($package.name)..." 'Yellow'
-                npm update -g $package.name
+            if (Test-ToolVersion $package -Silent) {
+                Write-ColorOutput "Updating $package..." 'Yellow'
+                npm update -g $package
             }
             else {
-                Write-ColorOutput "Installing $($package.name)..." 'Yellow'
-                npm install -g $package.name
+                Write-ColorOutput "Installing $package..." 'Yellow'
+                npm install -g $package
             }
         }
     }
 
-    # Install Python packages if Python is available
-    if ($script:installedTools['python'] -or (Get-Command python -ErrorAction SilentlyContinue)) {
+    # Install Python packages
+    if (Test-ToolVersion 'python' -Silent) {
         Write-ColorOutput "`nInstalling/Updating Python packages..." 'Cyan'
         $pythonPackages = @(
-            # Package Management
-            'pip'
-            'virtualenv'
-            'pipenv'
-            'poetry'
-
-            # Code Quality
-            'black'
-            'pylint'
-            'mypy'
-            'flake8'
-
-            # Testing
-            'pytest'
-            'pytest-cov'
-            'pytest-asyncio'
-
-            # Web Frameworks
-            'django'
-            'flask'
-            'fastapi'
-            'uvicorn'
-
-            # Data Science
-            'jupyter'
-            'pandas'
-            'numpy'
-            'matplotlib'
-            'seaborn'
-
-            # Utilities
-            'requests'
-            'httpx'
-            'aiohttp'
-            'beautifulsoup4'
-            'rich'
+            'pip', 'virtualenv', 'pipenv', 'poetry', 'black', 'pylint', 'mypy', 'flake8',
+            'pytest', 'pytest-cov', 'pytest-asyncio', 'django', 'flask', 'fastapi', 'uvicorn',
+            'jupyter', 'pandas', 'numpy', 'matplotlib', 'seaborn', 'requests', 'httpx',
+            'aiohttp', 'beautifulsoup4', 'rich'
         )
-
         foreach ($package in $pythonPackages) {
-            if (python -m pip show $package 2>&1) {
+            if (python -m pip show $package 2>$null) {
                 Write-ColorOutput "Updating $package..." 'Yellow'
                 python -m pip install --upgrade $package
             }
@@ -737,17 +592,7 @@ try {
     }
 
     # Create development directories
-    $devFolders = @(
-        'Projects'
-        'Workspace'
-        'Development'
-        'GitHub'
-        '.ssh'
-        '.config'
-        '.docker'
-        'Downloads\Development'
-    )
-
+    $devFolders = @('Projects', 'Workspace', 'Development', 'GitHub', '.ssh', '.config', '.docker', 'Downloads\Development')
     foreach ($folder in $devFolders) {
         $folderPath = Join-Path $env:USERPROFILE $folder
         if (Test-Path $folderPath) {
@@ -782,14 +627,13 @@ try {
         $terminalSettings | ConvertTo-Json -Depth 32 | Set-Content $terminalSettingsPath
     }
 
-    # Create PowerShell profile with auto-update function
+    # Create PowerShell profile
     if (-not (Test-Path $PROFILE)) {
         New-Item -ItemType File -Path $PROFILE -Force | Out-Null
     }
-
     Add-Content $PROFILE @"
-# Initialize Oh My Posh with default theme
-oh-my-posh init pwsh --config `"`$env:POSH_THEMES_PATH\agnoster.omp.json`" | Invoke-Expression
+# Initialize Oh My Posh
+oh-my-posh init pwsh --config "`$env:POSH_THEMES_PATH\agnoster.omp.json" | Invoke-Expression
 
 # Custom aliases
 Set-Alias -Name g -Value git
@@ -799,8 +643,7 @@ Set-Alias -Name k -Value kubectl
 
 # Auto-update function
 function Update-DevEnv {
-    Write-Host `"Updating development environment...`" -ForegroundColor Cyan
-    # Function content will be added by the installation script
+    Write-Host "Updating development environment..." -ForegroundColor Cyan
     $(Get-Content Function:\Update-AllPackages)
 }
 
@@ -839,51 +682,30 @@ function gb { git branch }
         'JAVA_HOME'   = Join-Path $env:USERPROFILE "scoop\apps\openjdk17\current"
         'MAVEN_HOME'  = Join-Path $env:USERPROFILE "scoop\apps\maven\current"
     }
-
     foreach ($var in $envVars.GetEnumerator()) {
         $currentValue = [System.Environment]::GetEnvironmentVariable($var.Key, 'Machine')
-        if ($currentValue -eq $var.Value) {
-            Write-ColorOutput "Environment variable $($var.Key) already set correctly" 'Green'
-        }
-        else {
+        if ($currentValue -ne $var.Value) {
             [System.Environment]::SetEnvironmentVariable($var.Key, $var.Value, 'Machine')
             Write-ColorOutput "Updated environment variable: $($var.Key)" 'Yellow'
         }
+        else {
+            Write-ColorOutput "Environment variable $($var.Key) already set correctly" 'Green'
+        }
     }
 
-    # Add this after setting environment variables but before the final validation
+    # Verify PATH configurations
     Write-ColorOutput "`nVerifying PATH configurations..." 'Cyan'
     $missingPaths = Test-AllPaths
-
-    # Attempt to fix missing PATH entries
     if ($missingPaths.Machine.Count -gt 0 -or $missingPaths.User.Count -gt 0) {
-        Write-ColorOutput "`nAttempting to fix missing PATH entries..." 'Yellow'
-
+        Write-ColorOutput "Attempting to fix missing PATH entries..." 'Yellow'
         foreach ($path in $missingPaths.Machine) {
             if (Test-Path $path) {
-                Write-ColorOutput "Adding to Machine PATH: $path" 'Yellow'
                 Add-ToPath -PathToAdd $path -Scope 'Machine'
             }
         }
-
         foreach ($path in $missingPaths.User) {
             if (Test-Path $path) {
-                Write-ColorOutput "Adding to User PATH: $path" 'Yellow'
                 Add-ToPath -PathToAdd $path -Scope 'User'
-            }
-        }
-
-        # Verify fixes
-        $remainingMissing = Test-AllPaths
-        if ($remainingMissing.Machine.Count -eq 0 -and $remainingMissing.User.Count -eq 0) {
-            Write-ColorOutput "All PATH entries have been fixed!" 'Green'
-        }
-        else {
-            Write-ColorOutput "Some PATH entries could not be fixed. Manual intervention may be required." 'Red'
-            foreach ($scope in $remainingMissing.Keys) {
-                foreach ($path in $remainingMissing[$scope]) {
-                    Write-ColorOutput "Still missing from $scope PATH: $path" 'Red'
-                }
             }
         }
     }
@@ -894,8 +716,7 @@ function gb { git branch }
     $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 9AM
     $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-
-    if (Get-ScheduledTask -TaskName $taskName -ErrorAction Silent) {
+    if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
         Write-ColorOutput "Updating scheduled task..." 'Yellow'
         Set-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings
     }
@@ -904,36 +725,27 @@ function gb { git branch }
         Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings
     }
 
-    # Add final validation at the end of the script
+    # Final validation
     Write-ColorOutput "Performing final validation..." 'Cyan'
     $validationResults = @()
-
-    $toolsToValidate = @(
-        @{Name = 'git'; Arg = '--version' },
-        @{Name = 'node'; Arg = '--version' },
-        @{Name = 'python'; Arg = '--version' },
-        @{Name = 'docker'; Arg = '--version' },
-        @{Name = 'code'; Arg = '--version' },
-        @{Name = 'kubectl'; Arg = 'version --client' }
-    )
-
+    $toolsToValidate = @('git', 'node', 'python', 'docker', 'code', 'kubectl')
     foreach ($tool in $toolsToValidate) {
-        if (Test-ToolVersion $tool.Name -VersionArg $tool.Arg) {
-            $validationResults += "$($tool.Name): OK"
+        if (Test-ToolVersion $tool -Silent) {
+            $validationResults += "${tool}: OK"
         }
         else {
-            $validationResults += "$($tool.Name): Not found or not working"
+            $validationResults += "${tool}: Not found or not working"
         }
     }
-
-    # Add PATH validation results to the final output
-    $validationResults += ""
-    $validationResults += "PATH Configuration: $(if ($pathValidation['PATH Configuration']) { 'OK' } else { 'Issues Found' })"
-
     Write-ColorOutput "`nInstallation Status:" 'Cyan'
     $validationResults | ForEach-Object { Write-ColorOutput $_ 'White' }
-
-    # Stop transcript logging
+    if ($script:failed.Count -gt 0) {
+        Write-ColorOutput "Failed installations: $($script:failed -join ', ')" 'Red'
+    }
+    if ($script:skipped.Count -gt 0) {
+        Write-ColorOutput "Skipped items: $($script:skipped -join ', ')" 'Yellow'
+    }
+    Write-ColorOutput "Setup completed!" 'Green'
     Stop-Transcript
 }
 catch {
