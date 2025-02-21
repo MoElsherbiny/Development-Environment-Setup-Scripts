@@ -8,7 +8,7 @@
 
 .USAGE
     Run this script as Administrator:
-    PowerShell.exe -ExecutionPolicy Bypass -File .\dev-setup.ps1
+    PowerShell.exe -ExecutionPolicy Bypass -File .\WindowsDevEnv-Setup.ps1
 
 .NOTES
     - Requires internet connectivity
@@ -16,7 +16,7 @@
     - Some installations may require user input for optional tools
 
 .VERSION
-    5.1.0
+    5.1.3
 #>
 
 # Requires -RunAsAdministrator
@@ -24,7 +24,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Script metadata
-$SCRIPT_VERSION = "5.1.0"
+$SCRIPT_VERSION = "5.1.3"
 $SCRIPT_TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $SCRIPT_LOG_PATH_BASE = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
@@ -65,14 +65,14 @@ function Test-ToolVersion {
         [switch]$SkipVersionCheck
     )
     try {
-        $version = & $Command $VersionArg 2>&1
+        $versionOutput = & $Command $VersionArg 2>&1
         if (-not $Silent) {
-            Write-ColorOutput "$Command version: $version" 'Gray'
+            Write-ColorOutput "$Command version: $versionOutput" 'Gray'
         }
         if ($SkipVersionCheck) {
             return $true
         }
-        if ($MinVersion -and $version -match '(\d+\.\d+\.\d+)') {
+        if ($MinVersion -and $versionOutput -match '(\d+\.\d+\.\d+)') {
             $versionNum = [version]$Matches[1]
             $minVersionNum = [version]$MinVersion
             return $versionNum -ge $minVersionNum
@@ -328,14 +328,17 @@ try {
     try {
         Write-ColorOutput "Checking for Scoop..." 'Cyan'
         $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop.cmd"
-        $maxRetries = 3
-        $retryCount = 0
-        $success = $false
+        Write-ColorOutput "Scoop path: $scoopPath" 'Gray'
 
-        while (-not $success -and $retryCount -lt $maxRetries) {
-            if (Test-Path $scoopPath -and (Test-ToolVersion 'scoop' -Silent)) {
+        # Check if Scoop is already installed and functional
+        if (Test-Path $scoopPath) {
+            Write-ColorOutput "Scoop executable found, verifying functionality..." 'Gray'
+            $scoopVersion = & scoop --version 2>&1
+            if ($LASTEXITCODE -eq 0) {
                 $script:installedTools['scoop'] = $true
-                Write-ColorOutput "Scoop is already installed, updating..." 'Green'
+                Write-ColorOutput "Scoop is already installed, version details:" 'Green'
+                Write-ColorOutput "$scoopVersion" 'Gray'
+                Write-ColorOutput "Updating Scoop..." 'Yellow'
                 scoop update
                 if ($LASTEXITCODE -ne 0) {
                     Write-ColorOutput "Scoop update failed. Please check the log for details." 'Yellow'
@@ -343,13 +346,25 @@ try {
                 else {
                     Write-ColorOutput "Scoop updated successfully" 'Green'
                 }
-                $success = $true
             }
             else {
+                Write-ColorOutput "Scoop executable exists but is not functional. Attempting reinstall..." 'Yellow'
+            }
+        }
+
+        # Install Scoop if not already installed or not functional
+        if (-not $script:installedTools['scoop']) {
+            $maxRetries = 3
+            $retryCount = 0
+            $success = $false
+
+            while (-not $success -and $retryCount -lt $maxRetries) {
                 Write-ColorOutput "Installing Scoop (Attempt $($retryCount + 1) of $maxRetries)..." 'Yellow'
                 try {
                     Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-                    Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+                    Write-ColorOutput "Downloading and executing Scoop installer with admin privileges..." 'Gray'
+                    # Force Scoop installation as Administrator
+                    Invoke-Expression "& { $(Invoke-RestMethod get.scoop.sh) } -RunAsAdmin"
                     if ($LASTEXITCODE -eq 0) {
                         $env:SCOOP = Join-Path $env:USERPROFILE "scoop"
                         [System.Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
@@ -364,7 +379,8 @@ try {
                 catch {
                     $retryCount++
                     if ($retryCount -lt $maxRetries) {
-                        Write-ColorOutput "Scoop installation failed, retrying in 5 seconds..." 'Yellow'
+                        Write-ColorOutput "Scoop installation failed: $_" 'Yellow'
+                        Write-ColorOutput "Retrying in 5 seconds..." 'Yellow'
                         Start-Sleep -Seconds 5
                     }
                     else {
@@ -372,13 +388,13 @@ try {
                     }
                 }
             }
-        }
-        if (-not $success) {
-            Write-ColorOutput "Troubleshooting tips:" 'Yellow'
-            Write-ColorOutput "- Ensure you have internet connectivity" 'Yellow'
-            Write-ColorOutput "- Check firewall settings" 'Yellow'
-            Write-ColorOutput "- Try running 'irm get.scoop.sh | iex' manually" 'Yellow'
-            throw "Failed to install Scoop"
+            if (-not $success) {
+                Write-ColorOutput "Troubleshooting tips:" 'Yellow'
+                Write-ColorOutput "- Ensure you have internet connectivity" 'Yellow'
+                Write-ColorOutput "- Check firewall settings" 'Yellow'
+                Write-ColorOutput "- Try running 'irm get.scoop.sh -RunAsAdmin | iex' manually" 'Yellow'
+                throw "Failed to install Scoop"
+            }
         }
 
         # Add Scoop buckets
@@ -470,8 +486,8 @@ try {
         $appName = $app.name
         $appPath = Join-Path $env:USERPROFILE "scoop\apps\$appName\current"
 
-        # Prompt for optional tools
-        if ($app.optional -and -not (Confirm-InstallationPrompt $appName "Optional tool")) {
+        # Prompt for optional tools only if the 'optional' property exists and is true
+        if (($app.ContainsKey('optional') -and $app.optional) -and -not (Confirm-InstallationPrompt $appName "Optional tool")) {
             Write-ColorOutput "Skipping $appName installation" 'Yellow'
             $script:skipped += $appName
             continue
@@ -486,7 +502,7 @@ try {
             }
         }
 
-        if ($app.useWinget -and (Test-ToolVersion 'winget' -VersionArg '--version' -Silent)) {
+        if ($app.ContainsKey('useWinget') -and $app.useWinget -and (Test-ToolVersion 'winget' -VersionArg '--version' -Silent)) {
             Write-ColorOutput "Checking $appName using winget..." 'Yellow'
             try {
                 winget list --id $app.wingetId --exact | Out-Null
