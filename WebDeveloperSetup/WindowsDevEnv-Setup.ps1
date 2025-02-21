@@ -1,9 +1,30 @@
+<#
+.SYNOPSIS
+    Sets up a Windows development environment with essential tools and configurations.
+
+.DESCRIPTION
+    This script installs and configures various development tools using Scoop, winget, and other package managers.
+    It sets up environment variables, PATH entries, and configurations for tools like VS Code, Git, and Windows Terminal.
+
+.USAGE
+    Run this script as Administrator:
+    PowerShell.exe -ExecutionPolicy Bypass -File .\dev-setup.ps1
+
+.NOTES
+    - Requires internet connectivity
+    - Logs are saved to %TEMP%\dev-setup-*.log
+    - Some installations may require user input for optional tools
+
+.VERSION
+    5.1.0
+#>
+
 # Requires -RunAsAdministrator
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Script metadata
-$SCRIPT_VERSION = "5.0.0"
+$SCRIPT_VERSION = "5.1.0"
 $SCRIPT_TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $SCRIPT_LOG_PATH_BASE = Join-Path $env:TEMP "dev-setup-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
@@ -24,7 +45,7 @@ $SCRIPT_LOG_PATH = Get-UniqueLogPath $SCRIPT_LOG_PATH_BASE
 # Start transcript logging
 Start-Transcript -Path $SCRIPT_LOG_PATH -Append -Force
 
-# Function to write colored output (no manual log writing, relies on transcript)
+# Function to write colored output
 function Write-ColorOutput {
     param(
         [string]$Message,
@@ -32,7 +53,6 @@ function Write-ColorOutput {
         [switch]$NoNewLine
     )
     Write-Host $Message -ForegroundColor $Color -NoNewLine:$NoNewLine
-    # Transcript captures this automatically, no need for Add-Content
 }
 
 # Function to test tool version
@@ -41,12 +61,16 @@ function Test-ToolVersion {
         [string]$Command,
         [string]$MinVersion = "",
         [string]$VersionArg = '--version',
-        [switch]$Silent
+        [switch]$Silent,
+        [switch]$SkipVersionCheck
     )
     try {
         $version = & $Command $VersionArg 2>&1
         if (-not $Silent) {
             Write-ColorOutput "$Command version: $version" 'Gray'
+        }
+        if ($SkipVersionCheck) {
+            return $true
         }
         if ($MinVersion -and $version -match '(\d+\.\d+\.\d+)') {
             $versionNum = [version]$Matches[1]
@@ -69,18 +93,25 @@ function Test-PathEntry {
         [string]$PathEntry,
         [ValidateSet('User', 'Machine')]$Scope
     )
+    $PathEntry = $PathEntry.TrimEnd('\')
     $currentPath = [System.Environment]::GetEnvironmentVariable('Path', $Scope)
     $pathsArray = $currentPath -split ';' | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
-    $PathEntry = $PathEntry.TrimEnd('\')
-    $exists = $pathsArray -contains $PathEntry
-    if (-not $exists) {
+
+    if ($pathsArray -notcontains $PathEntry) {
         Write-ColorOutput "WARNING: $PathEntry is missing from $Scope PATH" 'Yellow'
         return $false
     }
+
     if (-not (Test-Path $PathEntry)) {
         Write-ColorOutput "ERROR: $PathEntry in $Scope PATH does not exist on disk" 'Red'
         return $false
     }
+
+    $permissions = (Get-Acl $PathEntry).Access | Where-Object { $_.IdentityReference -eq "BUILTIN\Users" }
+    if (-not $permissions -or $permissions.FileSystemRights -notmatch "Read|FullControl") {
+        Write-ColorOutput "WARNING: Insufficient permissions for Users group on $PathEntry" 'Yellow'
+    }
+
     Write-ColorOutput "Verified $PathEntry in $Scope PATH" 'Green'
     return $true
 }
@@ -90,18 +121,18 @@ function Test-AllPaths {
     Write-ColorOutput "Verifying PATH entries..." 'Cyan'
     $requiredPaths = @{
         'Machine' = @(
-            (Join-Path $env:USERPROFILE "scoop\apps\git\current\cmd")
-            (Join-Path $env:USERPROFILE "scoop\apps\python\current")
-            (Join-Path $env:USERPROFILE "scoop\apps\python\current\Scripts")
-            (Join-Path $env:USERPROFILE "scoop\apps\nodejs-lts\current")
-            (Join-Path $env:USERPROFILE "scoop\apps\go\current\bin")
-            (Join-Path $env:USERPROFILE "scoop\apps\ruby\current\bin")
-            (Join-Path $env:USERPROFILE "scoop\apps\rust\current\bin")
+            (Join-Path $env:USERPROFILE "scoop\apps\git\current\cmd"),
+            (Join-Path $env:USERPROFILE "scoop\apps\python\current"),
+            (Join-Path $env:USERPROFILE "scoop\apps\python\current\Scripts"),
+            (Join-Path $env:USERPROFILE "scoop\apps\nodejs-lts\current"),
+            (Join-Path $env:USERPROFILE "scoop\apps\go\current\bin"),
+            (Join-Path $env:USERPROFILE "scoop\apps\ruby\current\bin"),
+            (Join-Path $env:USERPROFILE "scoop\apps\rust\current\bin"),
             (Join-Path $env:USERPROFILE "scoop\apps\java\current\bin")
         )
         'User'    = @(
-            (Join-Path $env:USERPROFILE "scoop\shims")
-            (Join-Path $env:USERPROFILE ".cargo\bin")
+            (Join-Path $env:USERPROFILE "scoop\shims"),
+            (Join-Path $env:USERPROFILE ".cargo\bin"),
             (Join-Path $env:USERPROFILE "go\bin")
         )
     }
@@ -154,7 +185,7 @@ function Add-ToPath {
         $newPath = ($pathsArray + $PathToAdd) -join ';'
         [System.Environment]::SetEnvironmentVariable('Path', $newPath, $Scope)
         $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-                    [System.Environment]::GetEnvironmentVariable('Path', 'User')
+        [System.Environment]::GetEnvironmentVariable('Path', 'User')
         Write-ColorOutput "Added to $Scope PATH: $PathToAdd" 'Green'
         return $true
     }
@@ -232,6 +263,30 @@ function Update-AllPackages {
     }
 }
 
+# Function to prompt for installation
+function Confirm-InstallationPrompt {
+    param (
+        [string]$ToolName,
+        [string]$Description
+    )
+    Write-ColorOutput "Do you want to install $ToolName? ($Description)" 'Cyan'
+    $response = Read-Host "(y/n)"
+    return $response -eq 'y'
+}
+
+# Function to backup configuration files
+function Backup-ConfigFile {
+    param (
+        [string]$OriginalPath,
+        [string]$BackupSuffix = ".backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    )
+    if (Test-Path $OriginalPath) {
+        $backupPath = "$OriginalPath$BackupSuffix"
+        Copy-Item -Path $OriginalPath -Destination $backupPath -Force
+        Write-ColorOutput "Backed up existing config to: $backupPath" 'Green'
+    }
+}
+
 # Main script execution
 try {
     # Check if running as Administrator
@@ -273,30 +328,57 @@ try {
     try {
         Write-ColorOutput "Checking for Scoop..." 'Cyan'
         $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop.cmd"
-        if (Test-Path $scoopPath -and (Test-ToolVersion 'scoop' -Silent)) {
-            $script:installedTools['scoop'] = $true
-            Write-ColorOutput "Scoop is already installed, updating..." 'Green'
-            scoop update
-            if ($LASTEXITCODE -ne 0) {
-                Write-ColorOutput "Scoop update failed" 'Yellow'
+        $maxRetries = 3
+        $retryCount = 0
+        $success = $false
+
+        while (-not $success -and $retryCount -lt $maxRetries) {
+            if (Test-Path $scoopPath -and (Test-ToolVersion 'scoop' -Silent)) {
+                $script:installedTools['scoop'] = $true
+                Write-ColorOutput "Scoop is already installed, updating..." 'Green'
+                scoop update
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput "Scoop update failed. Please check the log for details." 'Yellow'
+                }
+                else {
+                    Write-ColorOutput "Scoop updated successfully" 'Green'
+                }
+                $success = $true
             }
             else {
-                Write-ColorOutput "Scoop updated successfully" 'Green'
+                Write-ColorOutput "Installing Scoop (Attempt $($retryCount + 1) of $maxRetries)..." 'Yellow'
+                try {
+                    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+                    Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+                    if ($LASTEXITCODE -eq 0) {
+                        $env:SCOOP = Join-Path $env:USERPROFILE "scoop"
+                        [System.Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
+                        $script:installedTools['scoop'] = $true
+                        Write-ColorOutput "Scoop installed successfully" 'Green'
+                        $success = $true
+                    }
+                    else {
+                        throw "Scoop installation failed with exit code $LASTEXITCODE"
+                    }
+                }
+                catch {
+                    $retryCount++
+                    if ($retryCount -lt $maxRetries) {
+                        Write-ColorOutput "Scoop installation failed, retrying in 5 seconds..." 'Yellow'
+                        Start-Sleep -Seconds 5
+                    }
+                    else {
+                        throw "Scoop installation failed after $maxRetries attempts: $_"
+                    }
+                }
             }
         }
-        else {
-            Write-ColorOutput "Installing Scoop..." 'Yellow'
-            Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-            Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-            if ($LASTEXITCODE -eq 0) {
-                $env:SCOOP = Join-Path $env:USERPROFILE "scoop"
-                [System.Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
-                $script:installedTools['scoop'] = $true
-                Write-ColorOutput "Scoop installed successfully" 'Green'
-            }
-            else {
-                throw "Scoop installation failed with exit code $LASTEXITCODE"
-            }
+        if (-not $success) {
+            Write-ColorOutput "Troubleshooting tips:" 'Yellow'
+            Write-ColorOutput "- Ensure you have internet connectivity" 'Yellow'
+            Write-ColorOutput "- Check firewall settings" 'Yellow'
+            Write-ColorOutput "- Try running 'irm get.scoop.sh | iex' manually" 'Yellow'
+            throw "Failed to install Scoop"
         }
 
         # Add Scoop buckets
@@ -328,61 +410,82 @@ try {
     # Install essential tools with Scoop
     Write-ColorOutput "`nInstalling/Updating essential development tools..." 'Cyan'
     $scoopApps = @(
-        @{name = 'git'; cmd = 'git'; args = '--version' }
-        @{name = 'curl'; cmd = 'curl'; args = '--version' }
-        @{name = 'wget'; cmd = 'wget'; args = '--version' }
-        @{name = 'unzip'; cmd = 'unzip'; args = '-v' }
-        @{name = '7zip'; cmd = '7z'; args = '--help' }
-        @{name = 'nodejs-lts'; cmd = 'node'; args = '--version' }
-        @{name = 'python'; cmd = 'python'; args = '--version' }
-        @{name = 'vscode'; cmd = 'code'; args = '--version' }
-        @{name = 'docker'; cmd = 'docker'; args = '--version' }
-        @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version' }
-        @{name = 'postman'; cmd = 'postman'; args = '' }
-        @{name = 'windows-terminal'; cmd = 'wt'; args = '-v' }
-        @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version' }
-        @{name = 'firacode-nf'; cmd = ''; args = '' }
-        @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' }
-        @{name = 'powertoys'; cmd = ''; args = '' }
-        @{name = 'jq'; cmd = 'jq'; args = '--version' }
-        @{name = 'ruby'; cmd = 'ruby'; args = '--version' }
-        @{name = 'go'; cmd = 'go'; args = 'version' }
-        @{name = 'rust'; cmd = 'rustc'; args = '--version' }
-        @{name = 'gcc'; cmd = 'gcc'; args = '--version' }
-        @{name = 'openjdk17'; cmd = 'java'; args = '--version' }
-        @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' }
-        @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' }
-        @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' }
-        @{name = 'terraform'; cmd = 'terraform'; args = 'version' }
-        @{name = 'aws'; cmd = 'aws'; args = '--version' }
-        @{name = 'azure-cli'; cmd = 'az'; args = 'version' }
-        @{name = 'github'; cmd = 'gh'; args = '--version' }
-        @{name = 'helm'; cmd = 'helm'; args = 'version' }
-        @{name = 'k9s'; cmd = 'k9s'; args = 'version' }
-        @{name = 'minikube'; cmd = 'minikube'; args = 'version' }
-        @{name = 'mysql'; cmd = 'mysql'; args = '--version' }
-        @{name = 'postgresql'; cmd = 'psql'; args = '--version' }
-        @{name = 'mongodb'; cmd = 'mongo'; args = '--version' }
-        @{name = 'redis'; cmd = 'redis-server'; args = '--version' }
-        @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome' }
-        @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition' }
-        @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev' }
-        @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser' }
-        @{name = 'mingw'; cmd = 'gcc'; args = '--version' }
-        @{name = 'make'; cmd = 'make'; args = '--version' }
-        @{name = 'cmake'; cmd = 'cmake'; args = '--version' }
-        @{name = 'llvm'; cmd = 'clang'; args = '--version' }
-        @{name = 'ninja'; cmd = 'ninja'; args = '--version' }
-        @{name = 'gradle'; cmd = 'gradle'; args = '--version' }
-        @{name = 'maven'; cmd = 'mvn'; args = '--version' }
-        @{name = 'insomnia'; cmd = ''; args = '' }
-        @{name = 'wireshark'; cmd = ''; args = '' }
+        @{name = 'git'; cmd = 'git'; args = '--version' },
+        @{name = 'curl'; cmd = 'curl'; args = '--version' },
+        @{name = 'wget'; cmd = 'wget'; args = '--version' },
+        @{name = 'unzip'; cmd = 'unzip'; args = '-v' },
+        @{name = '7zip'; cmd = '7z'; args = '--help' },
+        @{name = 'nodejs-lts'; cmd = 'node'; args = '--version' },
+        @{name = 'python'; cmd = 'python'; args = '--version' },
+        @{name = 'vscode'; cmd = 'code'; args = '--version' },
+        @{name = 'docker'; cmd = 'docker'; args = '--version' },
+        @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version' },
+        @{name = 'postman'; cmd = 'postman'; args = ''; skipVersionCheck = $true },
+        @{name = 'windows-terminal'; cmd = 'wt'; args = '-v' },
+        @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version' },
+        @{name = 'firacode-nf'; cmd = ''; args = ''; skipVersionCheck = $true },
+        @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' },
+        @{name = 'powertoys'; cmd = ''; args = ''; skipVersionCheck = $true },
+        @{name = 'jq'; cmd = 'jq'; args = '--version' },
+        @{name = 'ruby'; cmd = 'ruby'; args = '--version' },
+        @{name = 'go'; cmd = 'go'; args = 'version' },
+        @{name = 'rust'; cmd = 'rustc'; args = '--version' },
+        @{name = 'gcc'; cmd = 'gcc'; args = '--version' },
+        @{name = 'openjdk17'; cmd = 'java'; args = '--version' },
+        @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' },
+        @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' },
+        @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' },
+        @{name = 'terraform'; cmd = 'terraform'; args = 'version' },
+        @{name = 'aws'; cmd = 'aws'; args = '--version' },
+        @{name = 'azure-cli'; cmd = 'az'; args = 'version' },
+        @{name = 'github'; cmd = 'gh'; args = '--version' },
+        @{name = 'helm'; cmd = 'helm'; args = 'version' },
+        @{name = 'k9s'; cmd = 'k9s'; args = 'version' },
+        @{name = 'minikube'; cmd = 'minikube'; args = 'version' },
+        @{name = 'mysql'; cmd = 'mysql'; args = '--version' },
+        @{name = 'postgresql'; cmd = 'psql'; args = '--version' },
+        @{name = 'mongodb'; cmd = 'mongo'; args = '--version' },
+        @{name = 'redis'; cmd = 'redis-server'; args = '--version' },
+        @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome'; optional = $true },
+        @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition'; optional = $true },
+        @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev'; optional = $true },
+        @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser'; optional = $true },
+        @{name = 'mingw'; cmd = 'gcc'; args = '--version' },
+        @{name = 'make'; cmd = 'make'; args = '--version' },
+        @{name = 'cmake'; cmd = 'cmake'; args = '--version' },
+        @{name = 'llvm'; cmd = 'clang'; args = '--version' },
+        @{name = 'ninja'; cmd = 'ninja'; args = '--version' },
+        @{name = 'gradle'; cmd = 'gradle'; args = '--version' },
+        @{name = 'maven'; cmd = 'mvn'; args = '--version' },
+        @{name = 'insomnia'; cmd = ''; args = ''; skipVersionCheck = $true },
+        @{name = 'wireshark'; cmd = ''; args = ''; skipVersionCheck = $true },
         @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }
     )
 
+    $totalApps = $scoopApps.Count
+    $currentApp = 0
     foreach ($app in $scoopApps) {
+        $currentApp++
+        Write-Progress -Activity "Installing tools" -Status "Processing $($app.name) ($currentApp/$totalApps)" -PercentComplete (($currentApp / $totalApps) * 100)
         $appName = $app.name
         $appPath = Join-Path $env:USERPROFILE "scoop\apps\$appName\current"
+
+        # Prompt for optional tools
+        if ($app.optional -and -not (Confirm-InstallationPrompt $appName "Optional tool")) {
+            Write-ColorOutput "Skipping $appName installation" 'Yellow'
+            $script:skipped += $appName
+            continue
+        }
+
+        # Dependency checks (example for Docker)
+        if ($appName -eq 'docker') {
+            $hyperV = Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq 'Microsoft-Hyper-V' }
+            if ($hyperV.State -ne 'Enabled') {
+                Write-ColorOutput "WARNING: Hyper-V is not enabled, which is required for Docker" 'Yellow'
+                Write-ColorOutput "Please enable Hyper-V or use WSL2 backend" 'Yellow'
+            }
+        }
+
         if ($app.useWinget -and (Test-ToolVersion 'winget' -VersionArg '--version' -Silent)) {
             Write-ColorOutput "Checking $appName using winget..." 'Yellow'
             try {
@@ -453,6 +556,7 @@ try {
             }
         }
     }
+    Write-Progress -Activity "Installing tools" -Completed
 
     # Ensure VS Code is installed and configured
     if (Get-Command code -ErrorAction SilentlyContinue) {
@@ -462,6 +566,7 @@ try {
         if (-not (Test-Path $vsCodeSettingsDir)) {
             New-Item -ItemType Directory -Force -Path $vsCodeSettingsDir | Out-Null
         }
+        Backup-ConfigFile -OriginalPath $vsCodeSettingsPath
         $defaultSettings = @{
             "editor.fontFamily"                          = "'FiraCode NF', Consolas, 'Courier New', monospace"
             "editor.fontLigatures"                       = $true
@@ -525,16 +630,16 @@ try {
     # Add development tools to PATH
     Write-ColorOutput "`nConfiguring PATH environment variables..." 'Cyan'
     $paths = @(
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\git\current\cmd"); Scope = 'Machine'; Tool = 'git' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\python\current"); Scope = 'Machine'; Tool = 'python' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\python\current\Scripts"); Scope = 'Machine'; Tool = 'python-scripts' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\nodejs-lts\current"); Scope = 'Machine'; Tool = 'nodejs' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\go\current\bin"); Scope = 'Machine'; Tool = 'go' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\ruby\current\bin"); Scope = 'Machine'; Tool = 'ruby' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\rust\current\bin"); Scope = 'Machine'; Tool = 'rust' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\java\current\bin"); Scope = 'Machine'; Tool = 'java' }
-        @{Path = (Join-Path $env:USERPROFILE "scoop\shims"); Scope = 'User'; Tool = 'scoop-shims' }
-        @{Path = (Join-Path $env:USERPROFILE ".cargo\bin"); Scope = 'User'; Tool = 'cargo-bin' }
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\git\current\cmd"); Scope = 'Machine'; Tool = 'git' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\python\current"); Scope = 'Machine'; Tool = 'python' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\python\current\Scripts"); Scope = 'Machine'; Tool = 'python-scripts' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\nodejs-lts\current"); Scope = 'Machine'; Tool = 'nodejs' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\go\current\bin"); Scope = 'Machine'; Tool = 'go' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\ruby\current\bin"); Scope = 'Machine'; Tool = 'ruby' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\rust\current\bin"); Scope = 'Machine'; Tool = 'rust' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\apps\java\current\bin"); Scope = 'Machine'; Tool = 'java' },
+        @{Path = (Join-Path $env:USERPROFILE "scoop\shims"); Scope = 'User'; Tool = 'scoop-shims' },
+        @{Path = (Join-Path $env:USERPROFILE ".cargo\bin"); Scope = 'User'; Tool = 'cargo-bin' },
         @{Path = (Join-Path $env:USERPROFILE "go\bin"); Scope = 'User'; Tool = 'go-bin' }
     )
     foreach ($pathInfo in $paths) {
@@ -620,6 +725,7 @@ try {
     $terminalSettingsPath = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     if (Test-Path $terminalSettingsPath) {
         Write-ColorOutput "Configuring Windows Terminal..." 'Cyan'
+        Backup-ConfigFile -OriginalPath $terminalSettingsPath
         $terminalSettings = Get-Content $terminalSettingsPath | ConvertFrom-Json
         $terminalSettings.profiles.defaults.font.face = "FiraCode NF"
         $terminalSettings.profiles.defaults.font.size = 12
@@ -631,6 +737,7 @@ try {
     if (-not (Test-Path $PROFILE)) {
         New-Item -ItemType File -Path $PROFILE -Force | Out-Null
     }
+    Backup-ConfigFile -OriginalPath $PROFILE
     Add-Content $PROFILE @"
 # Initialize Oh My Posh
 oh-my-posh init pwsh --config "`$env:POSH_THEMES_PATH\agnoster.omp.json" | Invoke-Expression
@@ -714,8 +821,8 @@ function gb { git branch }
     $taskName = "DevelopmentEnvironmentUpdate"
     $action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command Update-DevEnv"
     $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 9AM
-    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartInterval (New-TimeSpan -Minutes 30) -RestartCount 3
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
         Write-ColorOutput "Updating scheduled task..." 'Yellow'
         Set-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings
@@ -725,10 +832,15 @@ function gb { git branch }
         Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings
     }
 
-    # Final validation
+    # Cleanup temporary files
+    Write-ColorOutput "Cleaning up temporary files..." 'Cyan'
+    Get-ChildItem -Path $env:TEMP -Filter "scoop-*" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Write-ColorOutput "Cleanup completed" 'Green'
+
+    # Final validation and summary
     Write-ColorOutput "Performing final validation..." 'Cyan'
     $validationResults = @()
-    $toolsToValidate = @('git', 'node', 'python', 'docker', 'code', 'kubectl')
+    $toolsToValidate = @('git', 'node', 'python', 'docker', 'code', 'kubectl', 'go', 'ruby', 'rust', 'java', 'aws', 'az', 'terraform')
     foreach ($tool in $toolsToValidate) {
         if (Test-ToolVersion $tool -Silent) {
             $validationResults += "${tool}: OK"
@@ -737,6 +849,34 @@ function gb { git branch }
             $validationResults += "${tool}: Not found or not working"
         }
     }
+
+    # Generate summary report
+    $reportPath = Join-Path $env:TEMP "dev-setup-summary-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
+    $summary = @"
+Development Environment Setup Summary
+=====================================
+Date: $SCRIPT_TIMESTAMP
+Log File: $SCRIPT_LOG_PATH
+
+Installed Tools:
+----------------
+$($script:installedTools.Keys -join ', ')
+
+Failed Installations:
+--------------------
+$($script:failed -join ', ')
+
+Skipped Items:
+--------------
+$($script:skipped -join ', ')
+
+Validation Results:
+-------------------
+$($validationResults -join "`n")
+"@
+    $summary | Out-File -FilePath $reportPath -Encoding UTF8
+    Write-ColorOutput "Setup summary saved to: $reportPath" 'Green'
+
     Write-ColorOutput "`nInstallation Status:" 'Cyan'
     $validationResults | ForEach-Object { Write-ColorOutput $_ 'White' }
     if ($script:failed.Count -gt 0) {
@@ -750,6 +890,7 @@ function gb { git branch }
 }
 catch {
     Write-ColorOutput "An unexpected error occurred: $_" 'Red'
+    Write-ColorOutput "Check the log file at $SCRIPT_LOG_PATH for details." 'Yellow'
     Stop-Transcript
     exit 1
 }
