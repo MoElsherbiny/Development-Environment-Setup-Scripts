@@ -1,134 +1,279 @@
-# Unreal Engine Development Environment Setup Script
+# Unreal Engine Development Environment Setup
+
+![Version](https://img.shields.io/badge/version-5.1.0-blue.svg) ![Last Updated](https://img.shields.io/badge/last_updated-February_21,_2025-green.svg) ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
+
+This PowerShell script, authored by **Mohamed Elsherbiny**, automates the creation of an optimized development environment for Unreal Engine (UE) on Windows. Tailored for artists and developers, it installs essential tools, configures system settings, and streamlines workflows for Unreal Engine projects as of **February 21, 2025**.
+
+---
+
+## Table of Contents
+
+- [Unreal Engine Development Environment Setup](#unreal-engine-development-environment-setup)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+    - [Step-by-Step Guide](#step-by-step-guide)
+    - [Installation Notes](#installation-notes)
+  - [Usage](#usage)
+    - [Running the Script](#running-the-script)
+    - [Configuration Options](#configuration-options)
+    - [Backup and Restore](#backup-and-restore)
+  - [Components](#components)
+    - [Tool Installation](#tool-installation)
+    - [Environment Configuration](#environment-configuration)
+    - [Validation](#validation)
+  - [Directory Structure](#directory-structure)
+  - [PowerShell Profile Enhancements](#powershell-profile-enhancements)
+  - [Compatibility](#compatibility)
+  - [Troubleshooting](#troubleshooting)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+---
 
 ## Overview
 
-This PowerShell script is designed to automate the setup of a comprehensive Unreal Engine development environment on Windows. It handles the installation of all necessary tools, configurations, and dependencies required for Unreal Engine development, including Visual Studio, Epic Games Launcher, artist tools, and development utilities.
+The **Unreal Engine Development Environment Setup** script simplifies the process of preparing a Windows system for Unreal Engine development. By leveraging [Chocolatey](https://chocolatey.org/), a robust package manager, it automates the installation of tools, configures Git, sets up environment variables, and enhances PowerShell with Unreal-specific utilities. Supporting Unreal Engine versions **4.27 to 5.4**, it ensures compatibility with required Visual Studio versions, workloads, and .NET SDKs.
+
+This script is ideal for:
+
+- **Developers**: Setting up coding environments with Git, Visual Studio, and Unreal extras.
+- **Artists**: Installing tools like Blender, Substance Painter, and Maya for asset creation.
+- **Teams**: Standardizing development setups across multiple machines.
+
+---
 
 ## Features
 
-- **Automated Installation**: Installs all necessary tools and dependencies with minimal user input.
-- **Customizable Configuration**: Allows users to select which components to install and configure.
-- **Compatibility Management**: Ensures that the correct versions of tools are installed based on the selected Unreal Engine version.
-- **Environment Setup**: Configures environment variables, Git settings, and PowerShell profiles for optimal development workflow.
-- **Backup and Restore**: Creates a backup of the current environment before making changes and allows for easy restoration.
-- **Validation**: Performs a final validation to ensure all components are installed and configured correctly.
+- **Multi-Version Support**: Configure environments for Unreal Engine 4.27, 5.0, 5.1, 5.2, 5.3, and 5.4.
+- **Automated Tool Installation**: Installs development tools (e.g., Git, VS Code), artist tools (e.g., Blender, Maya), and Unreal extras (e.g., UE4CLI, Rider).
+- **Environment Configuration**: Sets up Git, environment variables, and a PowerShell profile with Unreal-specific aliases and functions.
+- **Backup System**: Creates backups of the current environment before changes.
+- **Parallel Installation**: Speeds up setup with optional parallel package installations.
+- **Validation**: Verifies tool and Unreal Engine component installations.
+- **Customizable**: Offers interactive prompts to tailor the setup to user needs.
+- **Logging**: Detailed logs for troubleshooting and verification.
 
-## Prerequisites
+---
 
-- **Windows 10/11**: The script is designed for Windows operating systems.
-- **PowerShell 5.1 or later**: Ensure PowerShell is up to date.
-- **Administrator Privileges**: The script requires administrator rights to install software and modify system settings.
+## Requirements
 
-## Installation Steps
+- **Operating System**: Windows 10 or later (64-bit)
+- **PowerShell**: Version 5.1 or higher (PowerShell Core supported)
+- **Administrator Privileges**: Script must run with elevated permissions (`-RunAsAdministrator`)
+- **Internet Connection**: Required for downloading Chocolatey and packages
+- **Disk Space**: Minimum 50 GB free (varies based on tools and UE versions installed)
+
+---
+
+## Installation
+
+### Step-by-Step Guide
 
 1. **Download the Script**:
 
-   - Download the `UnrealEngineSetup.ps1` script from the repository.
+   - Clone the repository or download `UnrealEngineSetup.ps1`:
+     ```bash
+     git clone <repository-url>
+     cd <repository-folder>
+     ```
 
-2. **Run the Script**:
+2. **Open PowerShell as Administrator**:
 
-   - Open PowerShell as an administrator.
-   - Navigate to the directory where the script is located.
-   - Run the script using the following command:
+   - Right-click the Start menu → "Windows PowerShell (Admin)" or "Terminal (Admin)".
+
+3. **Set Execution Policy** (if needed):
+
+   - Allow script execution:
+     ```powershell
+     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
+     ```
+
+4. **Run the Script**:
+
+   - Execute from the script directory:
      ```powershell
      .\UnrealEngineSetup.ps1
      ```
 
-3. **Follow the Prompts**:
+5. **Follow Interactive Prompts**:
+   - Customize your setup (e.g., UE versions, tools) or accept defaults.
 
-   - The script will display a welcome banner and guide you through the configuration options.
-   - You will be prompted to select which Unreal Engine versions to support, which tools to install, and other configuration settings.
+### Installation Notes
 
-4. **Wait for Completion**:
+- The script installs Chocolatey if not present.
+- Logs are saved to `%TEMP%\UnrealEngineSetup_YYYYMMDD_HHmmss.log`.
 
-   - The script will automatically install and configure all selected components. This process may take some time depending on the selected options and your internet connection.
-
-5. **Validation**:
-   - After the installation is complete, the script will perform a final validation to ensure everything is set up correctly.
-
-## Configuration Options
-
-The script provides several configuration options that can be customized during the setup process:
-
-- **Unreal Engine Versions**: Select which versions of Unreal Engine to support (e.g., 4.27, 5.0, 5.1, 5.2, 5.3).
-- **Visual Studio Installation**: Choose whether to install Visual Studio and select the appropriate workloads.
-- **Epic Games Launcher**: Install the Epic Games Launcher, which is required for managing Unreal Engine installations.
-- **Development Tools**: Install essential development tools such as Git, Visual Studio Code, Docker, and more.
-- **Artist Tools**: Install tools for artists, including Blender, Substance Painter, and Quixel Bridge.
-- **Environment Setup**: Configure environment variables, Git settings, and PowerShell profiles.
-- **Backup and Restore**: Create a backup of the current environment before making changes.
-
-## Script Components
-
-### Utility Functions
-
-- **Start-Logging**: Initializes logging to a file for troubleshooting and review.
-- **Write-ColorOutput**: Outputs colored text to the console with timestamps and logging.
-- **Show-WelcomeBanner**: Displays a welcome banner with script information.
-- **Get-UserChoices**: Prompts the user for configuration choices.
-- **Backup-Environment**: Creates a backup of the current environment.
-- **Restore-Environment**: Restores the environment from a backup.
-- **Ensure-Chocolatey**: Ensures that Chocolatey (a package manager for Windows) is installed.
-- **Test-ToolVersion**: Checks if a tool is installed and retrieves its version.
-- **Add-ToPath**: Adds a directory to the system PATH without duplicates.
-- **Test-PathExists**: Checks if a path exists in the system PATH.
-- **Install-ChocolateyPackages**: Installs Chocolatey packages with progress tracking.
-- **Install-PythonPackages**: Installs Python packages with error handling.
-- **Test-UnrealEngineInstallation**: Verifies if a specific Unreal Engine installation exists.
-- **Test-UnrealEnvironment**: Validates the environment for Unreal Engine development.
-
-### Installation Components
-
-- **Install-VisualStudio**: Installs Visual Studio based on the selected Unreal Engine version.
-- **Install-EpicGamesLauncher**: Installs the Epic Games Launcher.
-- **Install-DevTools**: Installs development tools such as Git, Visual Studio Code, and Docker.
-- **Install-ArtistTools**: Installs artist tools like Blender, Substance Painter, and Quixel Bridge.
-- **Install-UnrealPythonDependencies**: Installs Python dependencies required for Unreal Engine.
-- **Configure-Git**: Configures Git for Unreal Engine development.
-- **Create-DevelopmentDirectories**: Creates recommended directory structures for development.
-- **Set-EnvironmentVariables**: Sets environment variables for Unreal Engine development.
-- **Create-PowerShellProfile**: Creates a PowerShell profile with Unreal Engine-specific aliases and functions.
-- **Validate-Installation**: Performs a final validation of the installation.
+---
 
 ## Usage
 
-After running the script and completing the setup, you can start developing with Unreal Engine. The script configures your environment with useful aliases and functions in PowerShell, making it easier to navigate and manage your Unreal Engine projects.
+### Running the Script
 
-### PowerShell Aliases and Functions
+Run in an elevated PowerShell session:
 
-- **ue4**: Navigates to the Unreal Engine 4.27 installation directory.
-- **ue5**: Navigates to the Unreal Engine 5.0 installation directory.
-- **ue**: Navigates to the latest installed Unreal Engine version.
-- **ueprojects**: Navigates to the Unreal Engine projects directory.
-- **ueassets**: Navigates to the Unreal Engine assets directory.
-- **ueplugins**: Navigates to the Unreal Engine plugins directory.
-- **cdp**: Navigates to the Projects directory.
-- **cdw**: Navigates to the Workspace directory.
-- **cdg**: Navigates to the GitHub directory.
-- **gs**: Shortcut for `git status`.
-- **gp**: Shortcut for `git pull`.
-- **gps**: Shortcut for `git push`.
-- **gc**: Shortcut for `git checkout`.
-- **gb**: Shortcut for `git branch`.
-- **gl**: Shortcut for `git log --oneline --graph --decorate -10`.
-- **New-UEProject**: Creates a new Unreal Engine project with specified parameters.
+```powershell
+.\UnrealEngineSetup.ps1
+```
+
+The script will:
+
+1. Display a welcome banner.
+2. Prompt for configuration options (or use defaults if `PromptForChoices = $false`).
+3. Install tools and configure the environment.
+4. Validate the setup and provide a summary.
+
+### Configuration Options
+
+Interactive prompts allow customization:
+
+- **Unreal Engine Versions**: Select one or more (e.g., "5.4", "all").
+- **Software Installation**:
+  - Visual Studio (version based on UE compatibility)
+  - Epic Games Launcher
+  - Development Tools (e.g., Git, VS Code, Docker)
+  - Artist Tools (e.g., Blender, Substance Painter)
+  - Unreal Extras (e.g., UE4CLI, Rider)
+- **Environment Setup**:
+  - Configure Git for Unreal Engine
+  - Create directory structure
+  - Set up PowerShell profile
+  - Enable backups and validation
+  - Use parallel installations
+
+### Backup and Restore
+
+- **Backup**: Enabled by default, saves environment settings (PATH, variables, profile) to `~/UnrealSetupBackup/EnvBackup_YYYYMMDD_HHMMSS.json`.
+- **Restore**: Manually restore using:
+  ```powershell
+  Restore-Environment -BackupPath "$env:USERPROFILE\UnrealSetupBackup"
+  ```
+
+---
+
+## Components
+
+### Tool Installation
+
+Uses Chocolatey to install:
+
+- **Visual Studio**: UE 4.x (2019), UE 5.x (2022) with required workloads.
+- **Epic Games Launcher**: For UE version management.
+- **Development Tools**: Git, VS Code, Docker, Node.js, CMake, etc.
+- **Artist Tools**: Blender, Maya, Substance Painter, Quixel Bridge, etc.
+- **Unreal Extras**: UE4CLI, Rider, .NET SDKs.
+- **Python Dependencies**: Packages like `unreal`, `numpy`, `opencv-python`.
+
+### Environment Configuration
+
+- **Git**: Optimized with `core.autocrlf true`, Git LFS, and long path support.
+- **Directories**: Structured under `~/Projects` (see [Directory Structure](#directory-structure)).
+- **Environment Variables**: Sets `UE_ROOT`, `UE_PROJECTS`, `PYTHON_HOME`, etc.
+- **PowerShell Profile**: Adds aliases and functions (see [PowerShell Profile Enhancements](#powershell-profile-enhancements)).
+
+### Validation
+
+- Verifies tools (e.g., Git, Python, Blender).
+- Checks Unreal Engine installations in `C:\Program Files\Epic Games`.
+- Confirms environment variable settings.
+
+---
+
+## Directory Structure
+
+Created under `$env:USERPROFILE`:
+
+```
+~/Projects/
+├── UnrealProjects/    # UE project files
+├── UnrealPlugins/     # Custom plugins
+├── UnrealAssets/      # Asset storage
+├── UnrealPrototypes/  # Prototype projects
+├── UnrealTools/       # Tool scripts
+~/Workspace/           # General workspace
+~/GitHub/              # Git repositories
+~/.ssh/                # SSH keys
+~/.config/             # Configuration files
+~/.docker/             # Docker configurations
+~/Downloads/Development/ # Development downloads
+```
+
+---
+
+## PowerShell Profile Enhancements
+
+Enhances `$PROFILE` with:
+
+- **Aliases**:
+  - `ue4`, `ue5`, `ue`: Navigate to UE directories.
+  - `ueprojects`, `ueassets`, `ueplugins`: Jump to project folders.
+  - `gs`, `gp`, `gcm`: Git shortcuts.
+- **Functions**:
+  - `Get-UnrealEngineVersions`: Lists installed UE versions.
+  - `Start-UEEditor`: Launches the Unreal Editor.
+  - `New-UEProject`: Creates a new project with a template.
+  - `Build-UEProject`: Builds a project from a `.uproject` file.
+
+**Example Usage**:
+
+```powershell
+New-UEProject -ProjectName "MyGame" -EngineVersion "5.4"
+Start-UEEditor -Version "5.4"
+Build-UEProject -ProjectPath "C:\Users\Username\Projects\UnrealProjects\MyGame"
+```
+
+---
+
+## Compatibility
+
+Matches tools to Unreal Engine versions:
+
+| UE Version | Visual Studio     | .NET SDKs     | VCRedist     |
+| ---------- | ----------------- | ------------- | ------------ |
+| 4.27       | VS 2019 Community | 5.0           | vcredist140  |
+| 5.0-5.4    | VS 2022 Community | 6.0, 7.0, 8.0 | vcredist-all |
+
+---
 
 ## Troubleshooting
 
-- **Logs**: Check the log file generated by the script for detailed information about the installation process. The log file is located at `%TEMP%\UnrealEngineSetup_<timestamp>.log`.
-- **Restore**: If something goes wrong, you can restore your environment from the backup created by the script using the `Restore-Environment` function.
-- **Manual Installation**: If the script fails to install a specific component, you can manually install it using Chocolatey or the official installer.
+- **Script Won’t Run**: Ensure Administrator mode and `Bypass` execution policy.
+- **Chocolatey Fails**: Verify internet connection; retry with `choco upgrade chocolatey -y`.
+- **Tool Missing**: Check `%TEMP%\UnrealEngineSetup_YYYYMMDD_HHmmss.log`.
+- **UE Not Installed**: Use Epic Games Launcher post-setup to install versions.
+- **Restore Issues**: Confirm backup exists in `~/UnrealSetupBackup`.
+
+For detailed logs, see `%TEMP%\UnrealEngineSetup_YYYYMMDD_HHmmss.log`.
+
+---
 
 ## Contributing
 
-Contributions to the script are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request on the repository.
+Contributions are encouraged! To contribute:
 
-## Acknowledgments
+1. Fork the repository.
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/new-tool
+   ```
+3. Commit changes:
+   ```bash
+   git commit -m "Add support for new tool"
+   ```
+4. Push to the branch:
+   ```bash
+   git push origin feature/new-tool
+   ```
+5. Open a Pull Request.
 
-- **Chocolatey**: For providing a convenient package manager for Windows.
-- **Epic Games**: For creating Unreal Engine and providing the necessary tools for game development.
-- **Community**: For the various tools and libraries that make Unreal Engine development possible.
+Follow PowerShell best practices and include comments.
 
-## Conclusion
+---
 
-This script aims to simplify the setup process for Unreal Engine developers, allowing you to focus on creating amazing games and experiences. If you encounter any issues or have feedback, please don't hesitate to reach out.
+## License
+
+Licensed under the MIT License by **Mohamed Elsherbiny**. See [LICENSE](LICENSE) for details.
+
+**Copyright © 2025 Mohamed Elsherbiny**

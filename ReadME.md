@@ -1,428 +1,450 @@
-# **Development Environment Setup Script Guide**
+# 🚀 Ultimate Development Environment Hub
 
-This guide provides step-by-step instructions for setting up a development environment on **Windows**, **macOS**, and **Linux** using the provided scripts. It includes detailed steps for running the scripts, troubleshooting common issues, and customizing the setup for your needs.
+<p align="center">
+    <a href="https://github.com/MoElsherbiny/Development-Environment-Setup-Scripts/releases">
+        <img src="https://img.shields.io/badge/version-5.1.3-blue.svg" alt="Version">
+    </a>
+    <a href="https://github.com/MoElsherbiny/Development-Environment-Setup-Scripts/commits">
+        <img src="https://img.shields.io/badge/last_updated-February_22,_2025-green.svg" alt="Last Updated">
+    </a>
+    <a href="LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
+    </a>
+    <a href="https://github.com/MoElsherbiny/Development-Environment-Setup-Scripts/stargazers">
+        <img src="https://img.shields.io/github/stars/MoElsherbiny/Development-Environment-Setup-Scripts?color=gold&style=flat-square" alt="Stars">
+    </a>
+</p>
 
----
+<p align="center">
+    Welcome, brave developer, to the <b>Ultimate Development Environment Hub</b>—your gateway to turbo-charged productivity with Unreal Engine and web development! Created by <b>Mohamed Elsherbiny</b>.
+</p>
 
-## **Table of Contents**
+<p align="center">
+    This repository houses two powerhouse scripts: <code>UnrealSetup</code> and <code>WebDeveloperSetup</code>. Together, they transform your machine into a futuristic playground for gaming, 3D artistry, and web innovation as of <b>February 22, 2025</b>. ✨
+</p>
 
-1. **Overview**
-2. **Features**
-3. **Requirements**
-4. **Installation**
-   - Windows
-   - macOS
-   - Linux
-5. **Configuration**
-6. **Customization**
-7. **Maintenance**
-8. **Troubleshooting**
-9. **Logging**
-10. **Uninstallation**
-11. **Contributing**
-12. **Disclaimer**
+<hr>
 
----
+## 🌌 Mission: Launch Your Creative Universe
 
-## **1. Overview**
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p>Imagine a world where your development environment is as seamless as a sci-fi holodeck—tools installed, configurations optimized, and workflows streamlined with a single command. That’s what this repo delivers!</p>
+            <p>Whether you’re crafting breathtaking Unreal Engine worlds or building cutting-edge web applications, these scripts are your AI-powered copilots.</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/futuristic-workspace.png" alt="Futuristic Development Workspace" width="320px">
+        </td>
+    </tr>
+</table>
 
-This script automates the setup and configuration of a comprehensive development environment. It installs essential tools, programming languages, frameworks, and utilities while configuring system settings, environment variables, and development-related applications.
+## 📋 Table of Contents
 
----
+- [🚀 Ultimate Development Environment Hub](#-ultimate-development-environment-hub)
+  - [🌌 Mission: Launch Your Creative Universe](#-mission-launch-your-creative-universe)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [🌟 What’s Inside?](#-whats-inside)
+  - [⚡ Features](#-features)
+    - [Key Features](#key-features)
+  - [🚀 Getting Started](#-getting-started)
+    - [UnrealSetup](#unrealsetup)
+    - [WebDeveloperSetup](#webdevelopersetup)
+  - [📋 Requirements](#-requirements)
+    - [System Requirements](#system-requirements)
+  - [🛠️ Installation](#️-installation)
+    - [Detailed Installation Steps](#detailed-installation-steps)
+  - [🎨 Customization](#-customization)
+    - [UnrealSetup](#unrealsetup-1)
+    - [WebDeveloperSetup](#webdevelopersetup-1)
+  - [🛠️ Troubleshooting](#️-troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Detailed Troubleshooting](#detailed-troubleshooting)
+  - [🤝 Contributing](#-contributing)
+    - [Contribution Guidelines](#contribution-guidelines)
+  - [📜 License](#-license)
+  - [🌠 The Future is Now](#-the-future-is-now)
+  - [Granting PowerShell Full Control via Registry Editor](#granting-powershell-full-control-via-registry-editor)
+    - [When Needed](#when-needed)
+    - [Steps](#steps)
+    - [Verification](#verification)
+    - [Reverting Changes](#reverting-changes)
 
-## **2. Features**
+<hr>
 
-- **Package Management**:
-  - Windows: Scoop and Winget
-  - macOS: Homebrew
-  - Linux: apt (Debian/Ubuntu) or dnf (Fedora/RHEL)
-- **Tool Installation**:
-  - Version control (Git)
-  - Programming languages (Node.js, Python, Go, Rust, Java, etc.)
-  - Development tools (Docker, Kubernetes, Terraform, etc.)
-  - IDEs and editors (VS Code, Terminal)
-  - Database tools (MySQL, PostgreSQL, MongoDB, Redis)
-  - Cloud CLI tools (AWS, Azure, GCP)
-- **Environment Configuration**:
-  - Sets up PATH environment variables
-  - Configures Git settings
-  - Creates development directory structure
-  - Configures VS Code with extensions and settings
-  - Configures terminal (Windows Terminal, iTerm2, etc.)
-- **Automation**:
-  - Scheduled updates (cron jobs or Task Scheduler)
-  - Self-updating functionality
-  - Provides shortcut commands for common development tasks
+## 🌟 What’s Inside?
 
----
+<p>This repository is your launchpad for two distinct yet complementary development environments:</p>
 
-## **3. Requirements**
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <h3>🎮 UnrealSetup</h3>
+            <ul>
+                <li><b>Purpose</b>: Set up an optimized environment for Unreal Engine (versions 4.27–5.4) development.</li>
+                <li><b>Tools</b>: Chocolatey, Visual Studio, Epic Games Launcher, Git, Blender, Substance Painter, and more.</li>
+                <li><b>Highlights</b>: Multi-version support, artist/developer tools, PowerShell enhancements, and parallel installations.</li>
+                <li><b>Ideal For</b>: Game developers, 3D artists, and teams standardizing Unreal Engine setups.</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/unrealsetup-prompt.jpg" alt="UnrealSetup Prompt" width="320px">
+        </td>
+    </tr>
+</table>
 
-- **Windows**:
-  - Windows 10/11
-  - PowerShell 5.1 or later
-  - Administrator privileges
-- **macOS**:
-  - macOS 10.15 (Catalina) or later
-  - Homebrew (installed by the script if missing)
-- **Linux**:
-  - Ubuntu/Debian or Fedora/RHEL
-  - sudo privileges
-- **All Platforms**:
-  - Internet connection
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <h3>🌐 WebDeveloperSetup</h3>
+            <ul>
+                <li><b>Purpose</b>: Configure a robust Windows environment for web development and DevOps.</li>
+                <li><b>Tools</b>: Scoop, winget, Git, Node.js, Python, Docker, VS Code, Kubernetes, and cloud CLIs.</li>
+                <li><b>Highlights</b>: Automated PATH management, scheduled updates, VS Code integration, and terminal customization.</li>
+                 <li><b>Ideal For</b>: Web developers, DevOps engineers, and cloud computing enthusiasts.</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/webdevsetup-output.png" alt="WebDeveloperSetup Output" width="320px">
+        </td>
+    </tr>
+</table>
 
----
+<hr>
 
-## **4. Installation**
+## ⚡ Features
 
-### **Windows**
+### Key Features
 
-1. **Open PowerShell as Administrator**:
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Automation Magic</b>: Installs hundreds of tools with a single command—see it in this screenshot:</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/tool-installations.png" alt="Tool Installations" width="320px">
+        </td>
+    </tr>
+</table>
 
-   - Press `Win + X` and select **Windows PowerShell (Admin)** or **Terminal (Admin)**.
-   - Alternatively, search for "PowerShell" in the Start menu, right-click it, and select **Run as Administrator**.
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Cross-Tool Harmony</b>: Integrates version control, IDEs, languages, and utilities seamlessly.</p>
+            <p><b>- Customizable Workflows</b>: Tailor installations via interactive prompts—view a sample prompt:</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/custom-prompt.png" alt="Customizable Prompt" width="320px">
+        </td>
+    </tr>
+</table>
 
-2. **Enable Script Execution (if needed)**:
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Backup & Restore</b>: Safeguards your environment with backups before changes.</p>
+            <p><b>- Future-Proof</b>: Updated continuously to match the latest tools as of February 2025.</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/log-example.png" alt="Log Example" width="320px">
+        </td>
+    </tr>
+</table>
 
-   - By default, PowerShell restricts script execution for security reasons. If you encounter an error like:
+<hr>
+
+## 🚀 Getting Started
+
+### UnrealSetup
+
+1. **Clone or Download**:
+
+   - Navigate to the `UnrealSetup` folder:
+     ```bash
+     git clone <repository-url>
+     cd UnrealSetup
      ```
-     .\WindowsDevEnv-Setup.ps1 cannot be loaded because running scripts is disabled on this system.
-     ```
-   - Run the following command to allow script execution:
+
+2. **Run as Admin**:
+
+   - Open PowerShell as Administrator:
      ```powershell
-     Set-ExecutionPolicy RemoteSigned -Scope Process -Force
+     .\UnrealEngineSetup.ps1
      ```
 
-3. **Navigate to the Script Directory**:
+3. **Follow the Cosmic Prompts**:
+   - Customize your setup (e.g., UE versions, tools) or accept defaults.
 
-   - Use the `cd` command to navigate to the folder where the script is located. For example:
-     ```powershell
-     cd C:\Path\To\Script
+**Pro Tip**: Use `Restore-Environment` to revert changes if needed. Check the [UnrealSetup ReadMe](UnrealSetup/ReadMe.md) for detailed usage.
+
+---
+
+### WebDeveloperSetup
+
+1. **Clone or Download**:
+
+   - Navigate to the `WebDeveloperSetup` folder:
+     ```bash
+     git clone <repository-url>
+     cd WebDeveloperSetup
      ```
 
-4. **Execute the Script**:
-   - Run the script by typing:
+2. **Run as Admin**:
+
+   - Open PowerShell as Administrator:
      ```powershell
      .\WindowsDevEnv-Setup.ps1
      ```
 
----
+3. **Customize Your Galaxy**:
+   - Confirm optional tool installations (e.g., browsers).
 
-### **macOS**
-
-1. **Open Terminal**:
-
-   - Launch Terminal from Applications > Utilities or search for it using Spotlight (`Cmd + Space`).
-
-2. **Download and Run the Script**:
-
-   - Download the script and make it executable:
-     ```bash
-     curl -O https://raw.githubusercontent.com/your-repo/dev-setup.sh
-     chmod +x dev-setup.sh
-     ```
-
-3. **Run the Script**:
-   - Execute the script:
-     ```bash
-     ./dev-setup.sh
-     ```
+**Pro Tip**: Run `Update-DevEnv` weekly for automatic updates! Check the [WebDeveloperSetup ReadMe](WebDeveloperSetup/ReadMe.md) for advanced configurations.
 
 ---
 
-### **Linux**
-
-1. **Open Terminal**:
-
-   - Launch Terminal from your applications menu or press `Ctrl + Alt + T`.
-
-2. **Download and Run the Script**:
-
-   - Download the script and make it executable:
-     ```bash
-     curl -O https://raw.githubusercontent.com/your-repo/dev-setup.sh
-     chmod +x dev-setup.sh
-     ```
-
-3. **Run the Script**:
-   - Execute the script with sudo:
-     ```bash
-     sudo ./dev-setup.sh
-     ```
-
----
-
-## **5. Configuration**
-
-The script automatically configures:
-
-- **VS Code**:
-  - Installs essential extensions
-  - Sets up default settings
-  - Configures font and theme
-- **Terminal**:
-  - macOS: Configures iTerm2 with Oh My Zsh and Powerlevel10k
-  - Linux: Configures Bash or Zsh with custom aliases
-  - Windows: Configures Windows Terminal with FiraCode NF font
-- **Git**:
-  - Sets core configurations
-  - Configures credential helper
-- **Environment Variables**:
-  - Sets up paths for Python, Node.js, Go, Java, etc.
-- **Shell Profile**:
-  - Creates useful aliases
-  - Adds development shortcuts
-  - Configures Oh My Posh (Windows) or Oh My Zsh (macOS/Linux)
-
----
-
-## **6. Customization**
-
-### **VS Code Extensions**
-
-Create an `extensions.txt` file in the same directory as the script to add custom VS Code extensions. Each line should contain one extension ID.
-
-Example `extensions.txt`:
-
-```
-ms-vscode.csharp
-ms-python.python
-redhat.vscode-yaml
-```
-
-### **Environment Variables**
-
-The script sets up common environment variables. To add custom variables, modify the `$envVars` hashtable in the script.
-
----
-
-## **7. Maintenance**
-
-The script includes automated maintenance features:
-
-- **Scheduled Updates**:
-  - Windows: Task Scheduler (every Monday at 9 AM)
-  - macOS/Linux: Cron job (every Monday at 9 AM)
-- **Manual Update**:
-  - Run `update_dev_env` in your terminal to manually update all tools.
-- **Self-Healing**:
-  - Automatically fixes common PATH issues.
-
----
-
-## **8. Troubleshooting**
-
-### **Common Issues**
-
-1. **Script Not Found**:
-
-   - Ensure the script is in the current directory or provide the full path to the script.
-
-2. **Permission Denied**:
-
-   - Ensure you are running the script with administrator or sudo privileges.
-
-3. **Internet Connectivity Problems**:
-
-   - Check your network connection.
-   - If using a proxy, configure your terminal to use it.
-
-4. **PATH Configuration Problems**:
-
-   - Verify that the script has added the correct paths to your system PATH.
-
-5. **Review Logs**:
-   - Logs are saved to:
-     - Windows: `%TEMP%\dev-setup-<timestamp>.log`
-     - macOS/Linux: `/tmp/dev-setup-<timestamp>.log`
-
----
-
-## **9. Logging**
-
-The script creates detailed logs for troubleshooting:
-
-- **Windows**:
-  ```
-  %TEMP%\dev-setup-<timestamp>.log
-  ```
-- **macOS/Linux**:
-  ```
-  /tmp/dev-setup-<timestamp>.log
-  ```
-
----
-
-## **10. Uninstallation**
-
-To remove installed tools:
-
-1. **Windows**:
-
-   - Use Scoop to uninstall packages:
-     ```powershell
-     scoop uninstall <package>
-     ```
-   - Use Winget to remove applications:
-     ```powershell
-     winget uninstall <package>
-     ```
-
-2. **macOS**:
-
-   - Use Homebrew to uninstall packages:
-     ```bash
-     brew uninstall <package>
-     ```
-
-3. **Linux**:
-
-   - Use apt or dnf to uninstall packages:
-     ```bash
-     sudo apt remove <package>  # Debian/Ubuntu
-     sudo dnf remove <package>  # Fedora/RHEL
-     ```
-
-4. **All Platforms**:
-   - Manually remove environment variables and PATH entries.
-
----
-
-## **11. Contributing**
-
-Contributions are welcome! Please open an issue or pull request for any improvements or bug fixes.
-
----
-
-## **12. Disclaimer**
-
-This script modifies system settings and installs software. Use with caution and review the code before running. The author is not responsible for any system instability or data loss that may occur.
-
----
-
-**Note**: This script is designed for development environments. Some configurations may not be suitable for production systems. Always review and test changes in a safe environment before deploying to production systems.
-
----
-
-Created with ❤ by Mohamed ELsherbiny
-
----
-
-## **Additional Sections**
-
-### **Granting PowerShell Full Control via Registry Editor**
-
-In some cases, you may need to grant PowerShell full control over your system to ensure scripts run without restrictions. This can be particularly useful if you encounter persistent permission issues or if your organization has strict security policies.
-
----
-
-### **Steps to Grant PowerShell Full Control**
-
-#### **Step 1: Open the Registry Editor**
-
-- Press `Win + R` to open the Run dialog.
-- Type `regedit` and press `Enter`.
-- Click **Yes** if prompted by User Account Control (UAC).
-
-#### **Step 2: Navigate to the PowerShell Execution Policies Key**
-
-- In the Registry Editor, navigate to the following path:
-  ```
-  HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\PowerShell
-  ```
-- If the `PowerShell` key does not exist, create it:
-  - Right-click on the `Windows` key.
-  - Select **New > Key** and name it `PowerShell`.
-
-#### **Step 3: Create or Modify the `EnableScripts` Value**
-
-- Inside the `PowerShell` key, check if a value named `EnableScripts` exists:
-  - If it exists, double-click it and set its value to `1`.
-  - If it does not exist:
-    - Right-click in the right-hand pane.
-    - Select **New > DWORD (32-bit) Value**.
-    - Name the new value `EnableScripts`.
-    - Double-click `EnableScripts` and set its value to `1`.
-
-#### **Step 4: Grant Full Control to PowerShell**
-
-- Navigate to the following key:
-  ```
-  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
-  ```
-- Right-click the `Environment` key and select **Permissions**.
-- In the Permissions window:
-  - Click **Add**.
-  - In the "Enter the object names to select" field, type `SYSTEM` and click **Check Names**.
-  - Click **OK**.
-  - In the Permissions window, select `SYSTEM` and check the box for **Full Control** under "Allow".
-  - Click **Apply** and then **OK**.
-
-#### **Step 5: Restart Your Computer**
-
-- Close the Registry Editor and restart your computer to apply the changes.
-
----
-
-### **Verify PowerShell Full Control**
-
-1. **Open PowerShell as Administrator**:
-
-   - Press `Win + X` and select **Windows PowerShell (Admin)** or **Terminal (Admin)**.
-
-2. **Check Execution Policy**:
-
-   - Run the following command to check the current execution policy:
-     ```powershell
-     Get-ExecutionPolicy -List
-     ```
-   - Ensure the policies are set to allow script execution. For example:
-     - `MachinePolicy` and `UserPolicy` should be set to `Unrestricted` or `RemoteSigned`.
-
-3. **Test Script Execution**:
-   - Try running a simple script to verify that PowerShell has full control. For example:
-     ```powershell
-     .\WindowsDevEnv-Setup.ps1
-     ```
-
----
-
-### **Reverting Changes**
-
-If you encounter issues or no longer need these settings, you can revert the changes:
-
-1. **Remove the `EnableScripts` Value**:
-
-   - Navigate back to:
-     ```
-     HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\PowerShell
-     ```
-   - Delete the `EnableScripts` value.
-
-2. **Restore Default Permissions**:
-
-   - Navigate to:
-     ```
-     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
-     ```
-   - Right-click the `Environment` key, select **Permissions**, and remove the `SYSTEM` entry or restore default permissions.
-
-3. **Reset Execution Policy**:
-   - Open PowerShell as Administrator and run:
-     ```powershell
-     Set-ExecutionPolicy Restricted -Scope LocalMachine -Force
-     ```
-
----
-
-## **Important Security Considerations**
-
-- Granting full control to PowerShell can expose your system to potential security risks. Only use this method if absolutely necessary and in a trusted environment.
-- Always run scripts from trusted sources and review their contents before execution.
-- Consider using less permissive execution policies (e.g., `RemoteSigned`) for daily use.
-
----
-
-By following this guide, you can successfully run the `WindowsDevEnv-Setup.ps1` script and grant PowerShell full control if needed. If you encounter any issues, refer to the troubleshooting steps or consult the logs for detailed error messages.
-
-Created with Mohamed Elsherbiny ❤
+## 📋 Requirements
+
+### System Requirements
+
+| Platform    | OS                 | Privileges    | Tools Required  | Disk Space |
+| ----------- | ------------------ | ------------- | --------------- | ---------- |
+| **Windows** | Windows 10/11      | Administrator | PowerShell 5.1+ | ~50 GB     |
+| **macOS**   | macOS 10.15+       | Admin         | Homebrew        | ~30 GB     |
+| **Linux**   | Ubuntu/Fedora/RHEL | sudo          | apt/dnf         | ~30 GB     |
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Internet Connection</b>: Essential for downloading packages.</p>
+            <p><b>- Patience</b>: Let the scripts work their magic—complex setups take time!</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/system-requirements.png" alt="System Requirements" width="320px">
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+## 🛠️ Installation
+
+### Detailed Installation Steps
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p>Follow the steps under [Getting Started](#getting-started) for your chosen setup. Both scripts require:</p>
+            <ul>
+                <li>Administrator/sudo privileges.</li>
+                <li>A stable internet connection.</li>
+                <li>PowerShell (Windows) or Bash/Zsh (macOS/Linux).</li>
+            </ul>
+            <p><b>Surprise Bonus</b>: If you’re on macOS or Linux, imagine a script that uses Homebrew or apt/dnf to mirror these setups—contact me to co-create it! 🌍</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/macos-linux-setup.png" alt="macOS/Linux Setup" width="320px">
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+## 🎨 Customization
+
+### UnrealSetup
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <ul>
+                <li>Edit <code>$defaultConfig</code> in <code>UnrealEngineSetup.ps1</code> to disable features (e.g., <code>InstallArtistTools = $false</code>).</li>
+                <li>Add custom PowerShell aliases in the profile—see an example:</li>
+                 <li>Customize Visual Studio workloads and components for Unreal Engine development.</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/unreal-aliases.jpeg" alt="Unreal Aliases" width="320px">
+        </td>
+    </tr>
+</table>
+
+### WebDeveloperSetup
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <ul>
+                <li>Modify <code>$scoopApps</code> or <code>$essentialExtensions</code> to include/exclude tools.</li>
+                <li>Tweak <code>$envVars</code> for custom environment variables—view a sample configuration:</li>
+                <li>Configure Windows Terminal profiles and default settings.</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/env-vars.png" alt="Env Vars" width="320px">
+        </td>
+    </tr>
+</table>
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>Creative Twist</b>: Add your favorite tools by forking this repo and submitting a PR—let’s build a universe together!</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/forking-repo.png" alt="Forking Repo" width="320px">
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Script Fails to Run</b>:</p>
+            <ul>
+                <li>Ensure Administrator privileges and <code>Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force</code>.</li>
+                <li>See this troubleshooting image:</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/fix-execution-policy.jpeg" alt="Fix Execution Policy" width="320px">
+        </td>
+    </tr>
+</table>
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>- Internet or Package Issues</b>:</p>
+            <ul>
+                <li>Verify connectivity; retry with <code>scoop update</code> or <code>winget upgrade --all</code>.</li>
+            </ul>
+            <p><b>- Tool Missing</b>:</p>
+            <ul>
+                <li>Check logs (<code>%TEMP%\dev-setup-*.log</code> or <code>~/UnrealSetupBackup/*.log</code>)—view a log example:</li>
+            </ul>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/log-failure.png" alt="Log Failure" width="320px">
+        </td>
+    </tr>
+</table>
+
+<p><b>Surprise Fix</b>: Use the [Granting PowerShell Full Control](#granting-powershell-full-control-via-registry-editor) section for Windows-specific permission woes.</p>
+
+### Detailed Troubleshooting
+
+<p>For more in-depth troubleshooting, refer to the individual README files:</p>
+<ul>
+    <li><a href="UnrealSetup/ReadMe.md">UnrealSetup Troubleshooting</a></li>
+    <li><a href="WebDeveloperSetup/ReadMe.md">WebDeveloperSetup Troubleshooting</a></li>
+</ul>
+
+<hr>
+
+## 🤝 Contributing
+
+Join the cosmic dev community! Here’s how:
+
+1. Fork this repo.
+2. Create a branch: `git checkout -b feature/unreal-web-sync`.
+3. Commit your magic: `git commit -m "Sync Unreal and Web setups with AI insights"`.
+4. Push to the stars: `git push origin feature/unreal-web-sync`.
+5. Open a PR—let’s explore the galaxy together!
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+        </td>
+        <td width="40%" align="right">
+            <img src="images/open-pr.png" alt="Open PR" width="320px">
+        </td>
+    </tr>
+</table>
+
+### Contribution Guidelines
+
+<p>Please follow these guidelines when contributing:</p>
+<ul>
+    <li>Ensure your code adheres to PowerShell best practices.</li>
+    <li>Include detailed comments and documentation.</li>
+    <li>Test your changes thoroughly before submitting a pull request.</li>
+</ul>
+
+<hr>
+
+## 📜 License
+
+Licensed under the MIT License by **Mohamed Elsherbiny**. See [LICENSE](LICENSE) for details.
+**Copyright © 2025 Mohamed Elsherbiny**
+
+<hr>
+
+## 🌠 The Future is Now
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p>This repo isn’t just code—it’s a portal to your next big project. Whether you’re rendering Unreal worlds or coding web apps, these setups are your launchpad to infinity. Stay tuned for AI-powered updates from xAI, and let’s build the future together! 🚀</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/future-peek.png" alt="Future Peek" width="320px">
+        </td>
+    </tr>
+</table>
+
+<table width="100%">
+    <tr>
+        <td width="60%" valign="top">
+            <p><b>Surprise Ending</b>: Imagine this repo evolving with AI-driven auto-optimization—stay connected for exciting announcements! 🌌</p>
+        </td>
+        <td width="40%" align="right">
+            <img src="images/secret-bonus.png" alt="Secret Bonus" width="320px">
+        </td>
+    </tr>
+</table>
+
+<hr>
+
+## Granting PowerShell Full Control via Registry Editor
+
+### When Needed
+
+- Required if execution policies remain restrictive despite `Set-ExecutionPolicy`.
+- Useful in locked-down environments (e.g., corporate systems).
+
+### Steps
+
+1. **Open Registry Editor**:
+   - `Win + R` → `regedit` → Yes (UAC prompt).
+2. **Navigate to PowerShell Key**:
+   - `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\PowerShell`
+   - If missing, right-click `Windows` → New → Key → Name it `PowerShell`.
+3. **Enable Scripts**:
+   - Right-click `PowerShell` → New → DWORD (32-bit) Value → Name: `EnableScripts` → Value: `1`.
+4. **Grant Permissions**:
+   - Navigate: `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment`
+   - Right-click `Environment` → Permissions → Add → `SYSTEM` → Full Control → Apply.
+5. **Restart**:
+   - Reboot to apply changes.
+
+### Verification
+
+- Run: `Get-ExecutionPolicy -List`
+- Expected: `MachinePolicy`/`UserPolicy` as `Unrestricted` or `RemoteSigned`.
+- Test: `.\WindowsDevEnv-Setup.ps1`
+
+### Reverting Changes
+
+1. **Remove EnableScripts**:
+   - Delete `EnableScripts` from `HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\PowerShell`.
+2. **Reset Permissions**:
+   - Remove `SYSTEM` Full Control from `Environment` key.
+3. **Restore Policy**:
+   - `Set-ExecutionPolicy Restricted -Scope LocalMachine -Force`
