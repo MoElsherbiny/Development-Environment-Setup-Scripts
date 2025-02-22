@@ -207,11 +207,12 @@
 
 ### System Requirements
 
-| Platform    | OS                 | Privileges    | Tools Required  | Disk Space |
-| ----------- | ------------------ | ------------- | --------------- | ---------- |
-| **Windows** | Windows 10/11      | Administrator | PowerShell 5.1+ | ~50 GB     |
-| **macOS**   | macOS 10.15+       | Admin         | Homebrew        | ~30 GB     |
-| **Linux**   | Ubuntu/Fedora/RHEL | sudo          | apt/dnf         | ~30 GB     |
+| Platform                    | OS                 | Privileges    | Tools Required              | Disk Space (Minimum)      | Disk Space (Recommended)          |
+| --------------------------- | ------------------ | ------------- | --------------------------- | ------------------------- | --------------------------------- |
+| **Windows (General)**       | Windows 10/11      | Administrator | PowerShell 5.1+, Scoop      | ~22 GB                    | **~30-35 GB**                     |
+| **macOS (General)**         | macOS 10.15+       | Admin         | Homebrew                    | ~15-20 GB                 | **~20-25 GB**                     |
+| **Linux (General)**         | Ubuntu/Fedora/RHEL | sudo          | apt/dnf                     | ~13-17 GB                 | **~20-25 GB**                     |
+| **Windows (Unreal Engine)** | Windows 10/11      | Administrator | PowerShell 5.1+, Chocolatey | ~90-100 GB (1 UE version) | **~145-225 GB** (2-3 UE versions) |
 
 <table width="100%">
     <tr>
