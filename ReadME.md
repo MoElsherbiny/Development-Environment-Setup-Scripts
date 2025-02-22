@@ -392,7 +392,7 @@ Licensed under the MIT License by **Mohamed Elsherbiny**. See [LICENSE](LICENSE)
 <table width="100%">
     <tr>
         <td width="60%" valign="top">
-            <p>This repo isn’t just code—it’s a portal to your next big project. Whether you’re rendering Unreal worlds or coding web apps, these setups are your launchpad to infinity. Stay tuned for AI-powered updates from xAI, and let’s build the future together! 🚀</p>
+            <p>This repo isn’t just code—it’s a portal to your next big project. Whether you’re rendering Unreal worlds or coding web apps, these setups are your launchpad to infinity. Stay tuned 🚀</p>
         </td>
         <td width="40%" align="right">
             <img src="images/future-peek.png" alt="Future Peek" width="320px">
