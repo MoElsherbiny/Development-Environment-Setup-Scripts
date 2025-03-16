@@ -2,10 +2,10 @@
 
 <p align="center">
     <a href="https://github.com/MoElsherbiny/Development-Environment-Setup-Scripts/releases">
-        <img src="https://img.shields.io/badge/version-5.1.3-blue.svg" alt="Version">
+        <img src="https://img.shields.io/badge/version-5.1.4-blue.svg" alt="Version">
     </a>
     <a href="https://github.com/MoElsherbiny/Development-Environment-Setup-Scripts/commits">
-        <img src="https://img.shields.io/badge/last_updated-February_22,_2025-green.svg" alt="Last Updated">
+        <img src="https://img.shields.io/badge/last_updated-March_16,_2025-green.svg" alt="Last Updated">
     </a>
     <a href="LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License">
@@ -14,13 +14,11 @@
         <img src="https://img.shields.io/github/stars/MoElsherbiny/Development-Environment-Setup-Scripts?color=gold&style=flat-square" alt="Stars">
     </a>
 </p>
-
 <p align="center">
     Welcome, brave developer, to the <b>Ultimate Development Environment Hub</b>—your gateway to turbo-charged productivity with Unreal Engine and web development! Created by <b>Mohamed Elsherbiny</b>.
 </p>
-
 <p align="center">
-    This repository houses two powerhouse scripts: <code>UnrealSetup</code> and <code>WebDeveloperSetup</code>. Together, they transform your machine into a futuristic playground for gaming, 3D artistry, and web innovation as of <b>February 22, 2025</b>. ✨
+    This repository houses two powerhouse scripts: <code>UnrealSetup</code> and <code>WebDeveloperSetup</code>. Together, they transform your machine into a futuristic playground for gaming, 3D artistry, and web innovation as of <b>March 16, 2025</b>. ✨
 </p>
 
 <hr>
