@@ -16,7 +16,7 @@
     - Some installations may require user input for optional tools
 
 .VERSION
-    5.1.3
+    5.1.4
 #>
 
 # Requires -RunAsAdministrator
@@ -422,60 +422,112 @@ try {
     # Add Scoop to PATH
     $scoopShimsPath = Join-Path $env:USERPROFILE "scoop\shims"
     Add-ToPath -PathToAdd $scoopShimsPath -Scope 'User'
-
     # Install essential tools with Scoop
     Write-ColorOutput "`nInstalling/Updating essential development tools..." 'Cyan'
+
     $scoopApps = @(
-        @{name = 'git'; cmd = 'git'; args = '--version' },
-        @{name = 'curl'; cmd = 'curl'; args = '--version' },
-        @{name = 'wget'; cmd = 'wget'; args = '--version' },
-        @{name = 'unzip'; cmd = 'unzip'; args = '-v' },
-        @{name = '7zip'; cmd = '7z'; args = '--help' },
-        @{name = 'nodejs-lts'; cmd = 'node'; args = '--version' },
-        @{name = 'python'; cmd = 'python'; args = '--version' },
-        @{name = 'vscode'; cmd = 'code'; args = '--version' },
-        @{name = 'docker'; cmd = 'docker'; args = '--version' },
-        @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version' },
-        @{name = 'postman'; cmd = 'postman'; args = ''; skipVersionCheck = $true },
-        @{name = 'windows-terminal'; cmd = 'wt'; args = '-v' },
-        @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version' },
-        @{name = 'firacode-nf'; cmd = ''; args = ''; skipVersionCheck = $true },
-        @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' },
-        @{name = 'powertoys'; cmd = ''; args = ''; skipVersionCheck = $true },
-        @{name = 'jq'; cmd = 'jq'; args = '--version' },
-        @{name = 'ruby'; cmd = 'ruby'; args = '--version' },
-        @{name = 'go'; cmd = 'go'; args = 'version' },
-        @{name = 'rust'; cmd = 'rustc'; args = '--version' },
-        @{name = 'gcc'; cmd = 'gcc'; args = '--version' },
-        @{name = 'openjdk17'; cmd = 'java'; args = '--version' },
-        @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' },
-        @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' },
-        @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' },
-        @{name = 'terraform'; cmd = 'terraform'; args = 'version' },
-        @{name = 'aws'; cmd = 'aws'; args = '--version' },
-        @{name = 'azure-cli'; cmd = 'az'; args = 'version' },
-        @{name = 'github'; cmd = 'gh'; args = '--version' },
-        @{name = 'helm'; cmd = 'helm'; args = 'version' },
-        @{name = 'k9s'; cmd = 'k9s'; args = 'version' },
-        @{name = 'minikube'; cmd = 'minikube'; args = 'version' },
-        @{name = 'mysql'; cmd = 'mysql'; args = '--version' },
-        @{name = 'postgresql'; cmd = 'psql'; args = '--version' },
-        @{name = 'mongodb'; cmd = 'mongo'; args = '--version' },
-        @{name = 'redis'; cmd = 'redis-server'; args = '--version' },
-        @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome'; optional = $true },
-        @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition'; optional = $true },
-        @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev'; optional = $true },
-        @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser'; optional = $true },
-        @{name = 'mingw'; cmd = 'gcc'; args = '--version' },
-        @{name = 'make'; cmd = 'make'; args = '--version' },
-        @{name = 'cmake'; cmd = 'cmake'; args = '--version' },
-        @{name = 'llvm'; cmd = 'clang'; args = '--version' },
-        @{name = 'ninja'; cmd = 'ninja'; args = '--version' },
-        @{name = 'gradle'; cmd = 'gradle'; args = '--version' },
-        @{name = 'maven'; cmd = 'mvn'; args = '--version' },
-        @{name = 'insomnia'; cmd = ''; args = ''; skipVersionCheck = $true },
-        @{name = 'wireshark'; cmd = ''; args = ''; skipVersionCheck = $true },
-        @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }
+        # ### Backend Development Tools ###
+        # Tools primarily used for server-side programming, APIs, and backend frameworks
+        @{name = 'python'; cmd = 'python'; args = '--version' }, # General-purpose language for backend development (e.g., Django, Flask)
+        @{name = 'ruby'; cmd = 'ruby'; args = '--version' }, # Ruby language, popular for Rails backend framework
+        @{name = 'go'; cmd = 'go'; args = 'version' }, # Go language, ideal for high-performance backend services
+        @{name = 'rust'; cmd = 'rustc'; args = '--version' }, # Rust language, great for system-level backend programming
+        @{name = 'openjdk17'; cmd = 'java'; args = '--version' }, # Java runtime for backend development (e.g., Spring Boot)
+        @{name = 'kotlin'; cmd = 'kotlin'; args = '-version' }, # Kotlin language, often used with Java for backend (e.g., Ktor)
+        @{name = 'dotnet-sdk'; cmd = 'dotnet'; args = '--version' }, # .NET SDK for C# backend development (e.g., ASP.NET Core)
+        @{name = 'gradle'; cmd = 'gradle'; args = '--version' }, # Build tool for Java/Kotlin backend projects
+        @{name = 'maven'; cmd = 'mvn'; args = '--version' }, # Another build tool for Java backend projects
+        @{name = 'pycharm'; cmd = 'pycharm'; args = '--version'; useWinget = $true; wingetId = 'JetBrains.PyCharm.Community'; optional = $true }, # Python-specific IDE for backend development
+        @{name = 'intellij-idea'; cmd = 'idea'; args = '--version'; useWinget = $true; wingetId = 'JetBrains.IntelliJIDEA.Community'; optional = $true }, # Java/Kotlin IDE for backend development
+
+        # ### Frontend Development Tools ###
+        # Tools focused on client-side development, UI, and web applications
+        @{name = 'nodejs-lts'; cmd = 'node'; args = '--version' }, # Node.js for JavaScript/TypeScript frontend development (e.g., React, Vue)
+        @{name = 'vscode'; cmd = 'code'; args = '--version' }, # Lightweight editor, popular for frontend coding
+        @{name = 'webstorm'; cmd = 'webstorm'; args = '--version'; useWinget = $true; wingetId = 'JetBrains.WebStorm'; optional = $true }, # IDE tailored for JavaScript/TypeScript web development
+        @{name = 'firacode-nf'; cmd = ''; args = ''; skipVersionCheck = $true }, # Fira Code Nerd Font, enhances code readability in editors
+
+        # ### DevOps and Cloud Tools ###
+        # Tools for containerization, orchestration, cloud management, and infrastructure
+        @{name = 'docker'; cmd = 'docker'; args = '--version' }, # Container runtime for building and running apps
+        @{name = 'docker-compose'; cmd = 'docker-compose'; args = '--version' }, # Tool for managing multi-container Docker apps
+        @{name = 'podman'; cmd = 'podman'; args = '--version'; useWinget = $true; wingetId = 'RedHat.Podman'; optional = $true }, # Daemonless alternative to Docker
+        @{name = 'kubectl'; cmd = 'kubectl'; args = 'version --client' }, # Kubernetes command-line tool for cluster management
+        @{name = 'helm'; cmd = 'helm'; args = 'version' }, # Package manager for Kubernetes
+        @{name = 'k9s'; cmd = 'k9s'; args = 'version' }, # Terminal UI for managing Kubernetes clusters
+        @{name = 'minikube'; cmd = 'minikube'; args = 'version' }, # Local Kubernetes cluster for development
+        @{name = 'terraform'; cmd = 'terraform'; args = 'version' }, # Infrastructure-as-code tool for cloud provisioning
+        @{name = 'aws'; cmd = 'aws'; args = '--version' }, # AWS CLI for managing Amazon Web Services
+        @{name = 'azure-cli'; cmd = 'az'; args = 'version' }, # Azure CLI for managing Microsoft Azure resources
+        @{name = 'github'; cmd = 'gh'; args = '--version' }, # GitHub CLI for repository and workflow management
+        @{name = 'ngrok'; cmd = 'ngrok'; args = 'version' }, # Tool for exposing local servers to the internet
+        @{name = 'ansible'; cmd = 'ansible'; args = '--version' }, # Configuration management and automation tool
+
+        # ### Databases ###
+        # Tools for database management and development
+        @{name = 'mysql'; cmd = 'mysql'; args = '--version' }, # MySQL database server
+        @{name = 'postgresql'; cmd = 'psql'; args = '--version' }, # PostgreSQL database server
+        @{name = 'mongodb'; cmd = 'mongo'; args = '--version' }, # MongoDB NoSQL database server
+        @{name = 'redis'; cmd = 'redis-server'; args = '--version' }, # Redis in-memory data store
+        @{name = 'dbeaver'; cmd = 'dbeaver'; args = '--version'; useWinget = $true; wingetId = 'DBeaver.DBeaver'; optional = $true }, # Universal database client GUI
+
+        # ### Productivity Utilities ###
+        # General-purpose tools to enhance workflow, terminal experience, and task management
+        @{name = 'git'; cmd = 'git'; args = '--version' }, # Version control system
+        @{name = 'gitkraken'; cmd = 'gitkraken'; args = '--version'; useWinget = $true; wingetId = 'Axosoft.GitKraken'; optional = $true }, # Visual Git client
+        @{name = 'git-lfs'; cmd = 'git-lfs'; args = '--version' }, # Git extension for handling large files
+        @{name = 'github-desktop'; cmd = 'github'; args = '--version'; useWinget = $true; wingetId = 'GitHub.Desktop'; optional = $true }, # Git GUI for repository management
+        @{name = 'curl'; cmd = 'curl'; args = '--version' }, # Tool for making HTTP requests
+        @{name = 'wget'; cmd = 'wget'; args = '--version' }, # Alternative tool for downloading files
+        @{name = 'unzip'; cmd = 'unzip'; args = '-v' }, # Utility to extract ZIP archives
+        @{name = '7zip'; cmd = '7z'; args = '--help' }, # Versatile archive utility
+        @{name = 'windows-terminal'; cmd = 'wt'; args = '-v' }, # Modern terminal for Windows
+        @{name = 'oh-my-posh'; cmd = 'oh-my-posh'; args = '--version' }, # Prompt theming for PowerShell
+        @{name = 'starship'; cmd = 'starship'; args = '--version' }, # Fast, customizable cross-shell prompt
+        @{name = 'gsudo'; cmd = 'gsudo'; args = '--version' }, # Sudo-like privilege elevation tool
+        @{name = 'powertoys'; cmd = ''; args = ''; skipVersionCheck = $true }, # Microsoft PowerToys for productivity enhancements
+        @{name = 'jq'; cmd = 'jq'; args = '--version' }, # JSON processor for command-line data manipulation
+        @{name = 'bat'; cmd = 'bat'; args = '--version' }, # Enhanced 'cat' with syntax highlighting
+        @{name = 'fzf'; cmd = 'fzf'; args = '--version' }, # Fuzzy finder for files and command history
+        @{name = 'ripgrep'; cmd = 'rg'; args = '--version' }, # Blazing-fast alternative to grep for file searching
+        @{name = 'postman'; cmd = 'postman'; args = ''; skipVersionCheck = $true }, # API testing and development tool
+        @{name = 'insomnia'; cmd = ''; args = ''; skipVersionCheck = $true }, # Alternative API client to Postman
+        @{name = 'wireshark'; cmd = ''; args = ''; skipVersionCheck = $true }, # Network protocol analyzer
+        @{name = 'mingw'; cmd = 'gcc'; args = '--version' }, # Minimalist GNU compiler collection for Windows
+        @{name = 'gcc'; cmd = 'gcc'; args = '--version' }, # GCC compiler for C/C++ development
+        @{name = 'make'; cmd = 'make'; args = '--version' }, # Build automation tool
+        @{name = 'cmake'; cmd = 'cmake'; args = '--version' }, # Cross-platform build system generator
+        @{name = 'llvm'; cmd = 'clang'; args = '--version' }, # LLVM compiler infrastructure (includes Clang)
+        @{name = 'ninja'; cmd = 'ninja'; args = '--version' }, # Lightweight build system
+        @{name = 'todoist'; cmd = 'todoist'; args = '--version'; useWinget = $true; wingetId = 'Todoist.Todoist'; optional = $true }, # Task manager for organizing development tasks
+        @{name = 'obsidian'; cmd = 'obsidian'; args = '--version'; useWinget = $true; wingetId = 'Obsidian.Obsidian'; optional = $true }, # Markdown-based note-taking app
+        @{name = 'autohotkey'; cmd = 'autohotkey'; args = '/version'; useWinget = $true; wingetId = 'AutoHotkey.AutoHotkey'; optional = $true }, # Automation tool for custom hotkeys
+
+        # ### Code Quality ###
+        # Tools to improve code reliability and maintainability
+        @{name = 'shellcheck'; cmd = 'shellcheck'; args = '--version' }, # Static analysis tool for shell scripts
+
+        # ### System Management ###
+        # Tools for monitoring and troubleshooting system resources
+        @{name = 'htop'; cmd = 'htop'; args = '--version' }, # Interactive process viewer for system monitoring
+        @{name = 'sysinternals'; cmd = 'procexp'; args = '/accepteula'; skipVersionCheck = $true }, # Suite of tools for system diagnostics
+
+        # ### Security ###
+        # Tools for encryption and secure communication
+        @{name = 'gnupg'; cmd = 'gpg'; args = '--version' }, # Tool for encryption and signing data
+        @{name = 'openssh'; cmd = 'ssh'; args = '-V' }, # Secure shell for remote access
+
+        # ### Miscellaneous Utilities ###
+        # Handy tools for various development tasks
+        @{name = 'ffmpeg'; cmd = 'ffmpeg'; args = '-version' }, # Multimedia framework for processing audio/video
+        @{name = 'pandoc'; cmd = 'pandoc'; args = '--version' }, # Universal document converter for file transformations
+
+        # ### Browsers ###
+        # Web browsers for testing and development
+        @{name = 'googlechrome'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Google.Chrome'; optional = $true }, # Chrome browser
+        @{name = 'firefox-developer'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Mozilla.Firefox.DeveloperEdition'; optional = $true }, # Firefox Developer Edition
+        @{name = 'microsoft-edge-dev'; cmd = ''; args = ''; useWinget = $true; wingetId = 'Microsoft.Edge.Dev'; optional = $true }, # Edge Dev browser
+        @{name = 'brave'; cmd = ''; args = ''; useWinget = $true; wingetId = 'BraveSoftware.BraveBrowser'; optional = $true }  # Brave browser
     )
 
     $totalApps = $scoopApps.Count
