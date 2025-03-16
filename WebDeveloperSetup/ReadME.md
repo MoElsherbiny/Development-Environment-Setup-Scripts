@@ -1,8 +1,8 @@
 # Windows Development Environment Setup
 
-![Version](https://img.shields.io/badge/version-5.1.3-blue.svg) ![Last Updated](https://img.shields.io/badge/last_updated-February_21,_2025-green.svg) ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
+![Version](https://img.shields.io/badge/version-5.1.4-blue.svg) ![Last Updated](https://img.shields.io/badge/last_updated-March_15,_2025-green.svg) ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
-This PowerShell script, authored by **Mohamed Elsherbiny**, automates the setup of a robust development environment on Windows using **Scoop** and **winget**. It installs essential tools, configures system settings, and enhances workflows for developers as of **February 21, 2025**.
+This PowerShell script, authored by **Mohamed Elsherbiny**, automates the setup of a robust development environment on Windows using **Scoop** and **winget**. It installs essential tools, configures system settings, and enhances workflows for developers as of **March 15, 2025**.
 
 ---
 
