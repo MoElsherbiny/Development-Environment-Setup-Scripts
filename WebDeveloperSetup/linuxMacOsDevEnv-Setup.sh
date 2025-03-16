@@ -19,7 +19,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Add new helper functions
+# Function to test tool version
 test_tool_version() {
     local tool=$1
     local version
@@ -32,6 +32,7 @@ test_tool_version() {
     fi
 }
 
+# Function to verify PATH entry
 verify_path_entry() {
     local path_entry=$1
     if [[ ":$PATH:" != *":$path_entry:"* ]]; then
@@ -45,18 +46,15 @@ verify_path_entry() {
     return 0
 }
 
+# Function to verify all PATH entries
 verify_all_paths() {
     print_message "$BLUE" "Verifying PATH entries..."
     local missing_paths=()
-
-    # Add required paths similar to setup.ps1
     local required_paths=(
         "$HOME/.local/bin"
         "$HOME/go/bin"
         "$HOME/.cargo/bin"
         "$HOME/.npm-global/bin"
-        "$HOME/.pyenv/bin"
-        "$HOME/.nvm/versions/node/$(nvm current)/bin"
         "/usr/local/go/bin"
         "/usr/local/bin"
     )
@@ -74,52 +72,40 @@ verify_all_paths() {
 update_all_packages() {
     print_message "$BLUE" "Updating all development tools and packages..."
 
-    # Update package managers
     if command_exists brew; then
-        print_message "$YELLOW" "Updating Homebrew packages..."
         brew update && brew upgrade
     fi
 
     if command_exists apt; then
-        print_message "$YELLOW" "Updating apt packages..."
         sudo apt update && sudo apt upgrade -y
     fi
 
     if command_exists dnf; then
-        print_message "$YELLOW" "Updating dnf packages..."
         sudo dnf upgrade -y
     fi
 
-    # Update Node.js packages
     if command_exists npm; then
-        print_message "$YELLOW" "Updating npm and global packages..."
         npm update -g
     fi
 
-    # Update Python packages
     if command_exists pip3; then
-        print_message "$YELLOW" "Updating pip packages..."
         pip3 list --outdated --format=json | python3 -c "import json, sys; print('\n'.join([x['name'] for x in json.load(sys.stdin)]))" | xargs -n1 pip3 install -U
     fi
 
-    # Update Ruby gems
     if command_exists gem; then
-        print_message "$YELLOW" "Updating Ruby gems..."
         gem update
     fi
 
-    # Update Rust
     if command_exists rustup; then
-        print_message "$YELLOW" "Updating Rust..."
         rustup update
     fi
 
-    print_message "$GREEN" "All packages have been updated!"
+    print_message "$GREEN" "All packages updated successfully!"
 }
 
 # Check if running as root on Linux
 if [[ "$OSTYPE" == "linux-gnu"* && $EUID -ne 0 ]]; then
-    print_message "$RED" "This script must be run as root on Linux. Please use sudo."
+    print_message "$RED" "This script must be run as root on Linux. Use sudo."
     exit 1
 fi
 
@@ -141,7 +127,7 @@ for dir in "${COMMON_DIRS[@]}"; do
     print_message "$GREEN" "Created directory: $HOME/$dir"
 done
 
-# Install package managers and basic tools
+# Install package managers and tools
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS setup
     if ! command_exists brew; then
@@ -150,34 +136,91 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
 
-    # Install macOS packages
-    BREW_PACKAGES=(
-        git
-        node
-        python
-        go
-        rust
-        docker
-        kubectl
-        terraform
-        aws-cli
-        azure-cli
-        jq
-        wget
-        curl
-        tree
-        tmux
-        vim
-        visual-studio-code
-        iterm2
-        firefox-developer-edition
-        google-chrome
-        postman
+    # Backend Development Tools
+    BREW_BACKEND=(
+        python      # General-purpose language (Django, Flask)
+        ruby        # Ruby language (Rails)
+        go          # Go language (high-performance services)
+        rust        # Rust language (system-level programming)
+        openjdk@17  # Java runtime (Spring Boot)
+        kotlin      # Kotlin language (Ktor)
+        gradle      # Build tool for Java/Kotlin
+        maven       # Another build tool for Java
     )
 
-    for package in "${BREW_PACKAGES[@]}"; do
-        print_message "$YELLOW" "Installing $package..."
-        brew install $package || brew install --cask $package
+    # Frontend Development Tools
+    BREW_FRONTEND=(
+        node        # Node.js for JavaScript/TypeScript (React, Vue)
+        visual-studio-code  # Lightweight editor
+        jetbrains-toolbox   # For WebStorm, PyCharm, IntelliJ (optional IDEs)
+    )
+
+    # DevOps and Cloud Tools
+    BREW_DEVOPS=(
+        docker      # Container runtime
+        kubernetes-cli  # kubectl for Kubernetes
+        helm        # Package manager for Kubernetes
+        minikube    # Local Kubernetes cluster
+        terraform   # Infrastructure-as-code tool
+        awscli      # AWS CLI
+        azure-cli   # Azure CLI
+        gh          # GitHub CLI
+        ngrok       # Expose local servers
+        ansible     # Configuration management
+    )
+
+    # Databases
+    BREW_DATABASES=(
+        mysql       # MySQL database server
+        postgresql  # PostgreSQL database server
+        mongodb-community  # MongoDB NoSQL database
+        redis       # Redis in-memory data store
+        dbeaver-community  # Universal database client GUI (cask)
+    )
+
+    # Productivity Utilities
+    BREW_PRODUCTIVITY=(
+        git         # Version control
+        git-lfs     # Large file support for Git
+        curl        # HTTP requests
+        wget        # File downloads
+        unzip       # ZIP extraction
+        p7zip       # 7zip utility
+        iterm2      # Modern terminal (alternative to Windows Terminal)
+        starship    # Custom shell prompt (like Oh My Posh)
+        jq          # JSON processor
+        bat         # Enhanced 'cat'
+        fzf         # Fuzzy finder
+        postman     # API testing tool
+        insomnia    # Alternative API client
+        wireshark   # Network protocol analyzer
+        gcc         # GCC compiler
+        cmake       # Build system generator
+        llvm        # LLVM compiler (includes Clang)
+        ninja       # Lightweight build system
+        shellcheck  # Shell script linting
+        htop        # Process viewer
+        gnupg       # Encryption tool
+        openssh     # Secure shell
+        ffmpeg      # Media processing
+        pandoc      # Document conversion
+    )
+
+    # Browsers
+    BREW_BROWSERS=(
+        google-chrome       # Chrome browser
+        firefox             # Firefox browser
+        microsoft-edge      # Edge browser
+    )
+
+    # Install all tools
+    for category in BACKEND FRONTEND DEVOPS DATABASES PRODUCTIVITY BROWSERS; do
+        print_message "$BLUE" "Installing $category tools..."
+        eval "packages=( \"\${BREW_$category[@]}\" )"
+        for package in "${packages[@]}"; do
+            print_message "$YELLOW" "Installing $package..."
+            brew install $package || brew install --cask $package
+        done
     done
 
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -187,36 +230,84 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         print_message "$YELLOW" "Updating apt repositories..."
         sudo apt update
 
-        # Install Linux packages
-        COMMON_PACKAGES=(
-            git
-            curl
-            wget
-            unzip
-            p7zip
-            nodejs
-            python3
-            python3-pip
-            docker
-            docker-compose
-            golang
-            ruby
-            rustc
-            cargo
-            openjdk-17-jdk
-            maven
-            gradle
-            cmake
-            llvm
-            gcc
-            g++
-            make
-            jq
+        # Backend Development Tools
+        APT_BACKEND=(
+            python3 python3-pip  # General-purpose language (Django, Flask)
+            ruby                 # Ruby language (Rails)
+            golang               # Go language
+            rustc cargo          # Rust language
+            openjdk-17-jdk       # Java runtime
+            kotlin               # Kotlin language
+            gradle               # Build tool
+            maven                # Another build tool
         )
 
-        for package in "${COMMON_PACKAGES[@]}"; do
-            print_message "$YELLOW" "Installing $package..."
-            sudo apt install -y $package
+        # Frontend Development Tools
+        APT_FRONTEND=(
+            nodejs npm           # Node.js for JavaScript/TypeScript
+            code                 # VS Code (requires snap or manual install)
+        )
+
+        # DevOps and Cloud Tools
+        APT_DEVOPS=(
+            docker.io            # Container runtime
+            docker-compose       # Multi-container management
+            kubernetes-tools     # kubectl (may need additional repo)
+            helm                 # Kubernetes package manager (may need manual install)
+            minikube             # Local Kubernetes (may need manual install)
+            terraform            # Infrastructure-as-code (requires HashiCorp repo)
+            awscli               # AWS CLI
+            azure-cli            # Azure CLI (requires Microsoft repo)
+            gh                   # GitHub CLI (requires GitHub repo)
+            ngrok                # Expose local servers (requires manual install)
+            ansible              # Configuration management
+        )
+
+        # Databases
+        APT_DATABASES=(
+            mysql-server         # MySQL database
+            postgresql           # PostgreSQL database
+            mongodb-org          # MongoDB (requires MongoDB repo)
+            redis-server         # Redis in-memory store
+        )
+
+        # Productivity Utilities
+        APT_PRODUCTIVITY=(
+            git                  # Version control
+            git-lfs              # Large file support
+            curl                 # HTTP requests
+            wget                 # File downloads
+            unzip                # ZIP extraction
+            p7zip-full           # 7zip utility
+            jq                   # JSON processor
+            bat                  # Enhanced 'cat' (may need batcat on Ubuntu)
+            fzf                  # Fuzzy finder
+            gcc                  # GCC compiler
+            cmake                # Build system generator
+            g++                  # C++ compiler
+            make                 # Build automation
+            shellcheck           # Shell script linting
+            htop                 # Process viewer
+            gnupg                # Encryption tool
+            openssh-server       # Secure shell
+            ffmpeg               # Media processing
+            pandoc               # Document conversion
+        )
+
+        # Browsers
+        APT_BROWSERS=(
+            chromium-browser     # Chrome alternative
+            firefox              # Firefox browser
+        )
+
+        # Install all tools
+        for category in BACKEND FRONTEND DEVOPS DATABASES PRODUCTIVITY BROWSERS; do
+            print_message "$BLUE" "Installing $category tools..."
+            eval "packages=( \"\${APT_$category[@]}\" )"
+            for package in "${packages[@]}"; do
+                print_message "$YELLOW" "Installing $package..."
+                sudo apt install -y $package
+            done
         done
 
     elif command_exists dnf; then
@@ -224,43 +315,89 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         print_message "$YELLOW" "Updating dnf repositories..."
         sudo dnf update -y
 
-        # Install Linux packages
-        COMMON_PACKAGES=(
-            git
-            curl
-            wget
-            unzip
-            p7zip
-            nodejs
-            python3
-            python3-pip
-            docker
-            docker-compose
-            golang
-            ruby
-            rustc
-            cargo
-            openjdk-17-jdk
-            maven
-            gradle
-            cmake
-            llvm
-            gcc
-            g++
-            make
-            jq
+        # Backend Development Tools
+        DNF_BACKEND=(
+            python3 python3-pip  # General-purpose language
+            ruby                 # Ruby language
+            golang               # Go language
+            rust cargo           # Rust language
+            java-17-openjdk-devel  # Java runtime
+            kotlin               # Kotlin language
+            gradle               # Build tool
+            maven                # Another build tool
         )
 
-        for package in "${COMMON_PACKAGES[@]}"; do
-            print_message "$YELLOW" "Installing $package..."
-            sudo dnf install -y $package
+        # Frontend Development Tools
+        DNF_FRONTEND=(
+            nodejs               # Node.js
+        )
+
+        # DevOps and Cloud Tools
+        DNF_DEVOPS=(
+            docker               # Container runtime
+            docker-compose       # Multi-container management
+            kubernetes-client    # kubectl
+            helm                 # Kubernetes package manager (may need manual install)
+            minikube             # Local Kubernetes (may need manual install)
+            terraform            # Infrastructure-as-code (requires HashiCorp repo)
+            awscli               # AWS CLI
+            azure-cli            # Azure CLI (requires Microsoft repo)
+            gh                   # GitHub CLI (requires GitHub repo)
+            ansible              # Configuration management
+        )
+
+        # Databases
+        DNF_DATABASES=(
+            mysql-server         # MySQL database
+            postgresql-server    # PostgreSQL database
+            mongodb-server       # MongoDB (requires MongoDB repo)
+            redis                # Redis in-memory store
+        )
+
+        # Productivity Utilities
+        DNF_PRODUCTIVITY=(
+            git                  # Version control
+            git-lfs              # Large file support
+            curl                 # HTTP requests
+            wget                 # File downloads
+            unzip                # ZIP extraction
+            p7zip                # 7zip utility
+            jq                   # JSON processor
+            bat                  # Enhanced 'cat'
+            fzf                  # Fuzzy finder
+            gcc                  # GCC compiler
+            cmake                # Build system generator
+            gcc-c++              # C++ compiler
+            make                 # Build automation
+            shellcheck           # Shell script linting
+            htop                 # Process viewer
+            gnupg                # Encryption tool
+            openssh-server       # Secure shell
+            ffmpeg               # Media processing
+            pandoc               # Document conversion
+        )
+
+        # Browsers
+        DNF_BROWSERS=(
+            chromium             # Chrome alternative
+            firefox              # Firefox browser
+        )
+
+        # Install all tools
+        for category in BACKEND FRONTEND DEVOPS DATABASES PRODUCTIVITY BROWSERS; do
+            print_message "$BLUE" "Installing $category tools..."
+            eval "packages=( \"\${DNF_$category[@]}\" )"
+            for package in "${packages[@]}"; do
+                print_message "$YELLOW" "Installing $package..."
+                sudo dnf install -y $package
+            done
         done
     fi
 fi
 
-# Install Node.js global packages
+# Install Node.js global packages (common across platforms)
 if command_exists npm; then
-    COMMON_NODE_PACKAGES=(
+    NODE_PACKAGES=(
         pnpm
         yarn
         typescript
@@ -280,20 +417,18 @@ if command_exists npm; then
         firebase-tools
         webpack-cli
         vite
-        turbo
         jest
         cypress
     )
-
-    for package in "${COMMON_NODE_PACKAGES[@]}"; do
+    for package in "${NODE_PACKAGES[@]}"; do
         print_message "$YELLOW" "Installing Node.js package: $package..."
         npm install -g $package
     done
 fi
 
-# Install Python packages
+# Install Python packages (common across platforms)
 if command_exists pip3; then
-    COMMON_PYTHON_PACKAGES=(
+    PYTHON_PACKAGES=(
         virtualenv
         pipenv
         poetry
@@ -302,8 +437,6 @@ if command_exists pip3; then
         mypy
         flake8
         pytest
-        pytest-cov
-        pytest-asyncio
         django
         flask
         fastapi
@@ -312,15 +445,9 @@ if command_exists pip3; then
         pandas
         numpy
         matplotlib
-        seaborn
         requests
-        httpx
-        aiohttp
-        beautifulsoup4
-        rich
     )
-
-    for package in "${COMMON_PYTHON_PACKAGES[@]}"; do
+    for package in "${PYTHON_PACKAGES[@]}"; do
         print_message "$YELLOW" "Installing Python package: $package..."
         pip3 install --user $package
     done
@@ -328,9 +455,14 @@ fi
 
 # Configure Git
 print_message "$BLUE" "Configuring Git..."
+git config --global user.name "Your Name" # Replace with your name
+git config --global user.email "your.email@example.com" # Replace with your email
 git config --global core.autocrlf input
 git config --global init.defaultBranch main
 git config --global pull.rebase false
+git config --global core.fileMode true
+git config --global core.symlinks true
+git config --global credential.helper store
 
 # Set up shell configuration
 SHELL_RC="$HOME/.bashrc"
@@ -338,51 +470,38 @@ if [[ "$SHELL" == *"zsh"* ]]; then
     SHELL_RC="$HOME/.zshrc"
 fi
 
-# Add environment variables and aliases
 cat << 'EOF' >> "$SHELL_RC"
-
 # Development environment configuration
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.cargo/bin:$HOME/.npm-global/bin:/usr/local/go/bin:/usr/local/bin:$PATH"
 export GOPATH="$HOME/go"
-export PATH="$GOPATH/bin:$PATH"
-export PATH="$HOME/.cargo/bin:$PATH"
+export NODE_PATH="$HOME/.npm-global"
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 
 # Aliases
 alias g='git'
 alias py='python3'
 alias dps='docker ps'
 alias dcp='docker-compose up'
-alias dcpd='docker-compose up -d'
-alias dcd='docker-compose down'
 alias k='kubectl'
 alias tf='terraform'
-
-# Git aliases
 alias gs='git status'
 alias gp='git pull'
 alias gps='git push'
-alias gc='git checkout'
-alias gb='git branch'
-
-# Directory shortcuts
 alias cdp='cd ~/Projects'
 alias cdw='cd ~/Workspace'
 alias cdg='cd ~/GitHub'
 
-# Update development environment
+# Update function
 update_dev_env() {
     echo "Updating development environment..."
     $(declare -f update_all_packages)
     update_all_packages
 }
-
 EOF
 
-# Set up automatic updates (cron job)
+# Set up cron job for weekly updates
 CRON_CMD="0 9 * * 1 $HOME/.local/bin/update_dev_env.sh"
 (crontab -l 2>/dev/null | grep -v "update_dev_env.sh"; echo "$CRON_CMD") | crontab -
-
-# Create update script
 mkdir -p "$HOME/.local/bin"
 cat << 'EOF' > "$HOME/.local/bin/update_dev_env.sh"
 #!/bin/bash
@@ -391,91 +510,32 @@ update_all_packages
 EOF
 chmod +x "$HOME/.local/bin/update_dev_env.sh"
 
-setup_development_environment() {
-    # Configure Git
-    git config --global core.autocrlf input
-    git config --global init.defaultBranch main
-    git config --global pull.rebase false
-    git config --global core.fileMode true
-    git config --global core.symlinks true
-    git config --global core.longpaths true
-    git config --global credential.helper store
-
-    # Set up VS Code if available
-    if command_exists code; then
-        print_message "$BLUE" "Configuring VS Code..."
-        # Install extensions from file if exists
-        if [ -f "extensions.txt" ]; then
-            while IFS= read -r extension; do
-                code --install-extension "$extension" --force
-            done < "extensions.txt"
-        fi
-    fi
-
-    # Set environment variables
-    cat << 'EOF' >> "$HOME/.profile"
-export PYTHON_HOME=/usr/local/python3
-export NODE_PATH=$HOME/.npm-global
-export GOPATH=$HOME/go
-export CARGO_HOME=$HOME/.cargo
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
-export MAVEN_HOME=/usr/share/maven
-export PATH=$PYTHON_HOME/bin:$NODE_PATH/bin:$GOPATH/bin:$CARGO_HOME/bin:$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
-EOF
-}
-
+# Validation
 validate_installation() {
-    print_message "$BLUE" "Performing final validation..."
-    local tools=(
-        "git"
-        "node"
-        "python3"
-        "docker"
-        "code"
-        "kubectl"
-    )
-
+    print_message "$BLUE" "Validating installation..."
+    local tools=("git" "node" "python3" "docker" "kubectl" "terraform" "aws" "code")
     for tool in "${tools[@]}"; do
         test_tool_version "$tool"
     done
-
     verify_all_paths
-
-    print_message "$GREEN" "Installation completed!"
-    print_message "$YELLOW" "Please restart your terminal for all changes to take effect."
+    print_message "$GREEN" "Setup validated successfully!"
 }
 
-print_message "$GREEN" "Setup complete! Development environment has been configured with:"
+# Final output
+print_message "$GREEN" "Setup complete! Your development environment includes:"
 cat << EOF
-1. Package Managers and Core Tools:
-   - Homebrew (macOS) / apt/dnf (Linux)
-   - Git, curl, wget
-   - Build tools and utilities
+1. Backend Tools: Python, Ruby, Go, Rust, Java, Kotlin, Gradle, Maven
+2. Frontend Tools: Node.js, VS Code
+3. DevOps Tools: Docker, Kubernetes, Terraform, AWS CLI, Azure CLI, GitHub CLI
+4. Databases: MySQL, PostgreSQL, MongoDB, Redis
+5. Productivity: Git, curl, wget, bat, fzf, jq, htop, shellcheck
+6. Automation: Weekly updates (Monday 9 AM), 'update_dev_env' command
 
-2. Development Environments:
-   - Node.js with npm, pnpm, yarn
-   - Python with pip and various packages
-   - Development directories
-
-3. Configurations:
-   - Git configuration
-   - Shell aliases and functions
-   - Environment variables
-   - Automatic updates
-
-4. Auto-Update Features:
-   - Weekly updates (Monday at 9 AM)
-   - Manual updates via 'update_dev_env' command
-
-Next steps:
-1. Restart your terminal or run: source $SHELL_RC
-2. Run 'update_dev_env' to ensure all packages are up to date
-3. Start using the new aliases and functions
-
-Your development environment will automatically update every Monday at 9 AM.
-You can manually update anytime by running 'update_dev_env' in your terminal.
+Next Steps:
+1. Restart your terminal: source $SHELL_RC
+2. Run 'update_dev_env' to update all packages
+3. Customize Git: Update user.name and user.email in ~/.gitconfig
 EOF
 
-print_message "$YELLOW" "Please restart your terminal for all changes to take effect."
-
 validate_installation
+print_message "$YELLOW" "Restart your terminal to apply changes."
